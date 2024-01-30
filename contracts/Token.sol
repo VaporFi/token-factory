@@ -105,8 +105,8 @@ contract Token is ERC20, ERC20Permit, Ownable {
 
     function _percentage(
         uint256 _number,
-        uint256 _percentage
+        uint256 _percentageBasisPoints // Example: 1% is 100
     ) internal pure returns (uint256) {
-        return (_number * _percentage) / 10_000;
+        return (_number * _percentageBasisPoints) / 10_000;
     }
 }
