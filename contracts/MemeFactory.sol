@@ -7,6 +7,12 @@ import {IVaporDEXFactory} from "./interfaces/IVaporDEXFactory.sol";
 import {IVaporDEXRouter} from "./interfaces/IVaporDEXRouter.sol";
 import {Token} from "./Token.sol";
 
+error MemeFactory__WrongConstructorArguments();
+error MemeFactory__LiquidityStillLocked();
+error MemeFactory__Unauthorized();
+error MemeFactory__ZeroAddress();
+error MemeFactory__WrongLaunchArguments();
+
 contract MemeFactory is Ownable {
     address public immutable factory;
     address public immutable router;
@@ -21,16 +27,14 @@ contract MemeFactory is Ownable {
     }
     mapping(address => LiquidityLock) private _pairInfo;
 
-    error WrongConstructorArguments();
-    error LiquidityStillLocked();
-    error Unauthorized();
-    error ZeroAddress();
-
     event TokenLaunched(
         address indexed _tokenAddress,
         address indexed _pairAddress
     );
-    event LiquidityUnlocked(address indexed _pairAddress, address indexed _to);
+    event LiquidityTokensUnlocked(
+        address indexed _pairAddress,
+        address indexed _receiver
+    );
     event LiquidityTransferred(
         address indexed _pairAddress,
         address indexed _to
@@ -45,9 +49,12 @@ contract MemeFactory is Ownable {
         if (
             _owner == address(0) ||
             _routerAddress == address(0) ||
-            _stratosphereAddress == address(0)
+            _stratosphereAddress == address(0) ||
+            _owner == _routerAddress ||
+            _owner == _stratosphereAddress ||
+            _routerAddress == _stratosphereAddress
         ) {
-            revert WrongConstructorArguments();
+            revert MemeFactory__WrongConstructorArguments();
         }
 
         router = _routerAddress;
@@ -62,10 +69,15 @@ contract MemeFactory is Ownable {
         string memory _name,
         string memory _symbol,
         uint256 _totalSupply,
-        uint256 _releaseTime
+        uint256 _tradingStartsAt
     ) external payable returns (address _pair, address _tokenAddress) {
         // Step 1: Create the token
-        Token _token = _createToken(_name, _symbol, _totalSupply, _releaseTime);
+        Token _token = _createToken(
+            _name,
+            _symbol,
+            _totalSupply,
+            _tradingStartsAt
+        );
         _tokenAddress = address(_token);
 
         // Step 2: Create the pair
@@ -87,7 +99,7 @@ contract MemeFactory is Ownable {
         // Step 3: Get the pair address
         _pair = IVaporDEXFactory(factory).getPair(_tokenAddress, WETH);
         if (_pair == address(0)) {
-            revert ZeroAddress();
+            revert MemeFactory__ZeroAddress();
         }
         // Step 4: Set the LP address in the token
         _token.setLiquidityPool(_pair);
@@ -103,27 +115,27 @@ contract MemeFactory is Ownable {
         emit TokenLaunched(_tokenAddress, _pair);
     }
 
-    function unlockLiquidity(address _pair, address _to) external {
+    function unlockLiquidityTokens(address _pair, address _receiver) external {
         if (_pairInfo[_pair].unlocksAt > block.timestamp) {
-            revert LiquidityStillLocked();
+            revert MemeFactory__LiquidityStillLocked();
         }
         if (_pairInfo[_pair].owner != msg.sender) {
-            revert Unauthorized();
+            revert MemeFactory__Unauthorized();
         }
         _pairInfo[_pair].owner = address(0);
         _pairInfo[_pair].pair = address(0);
         _pairInfo[_pair].unlocksAt = 0;
 
         ERC20 _lpToken = ERC20(_pair);
-        _lpToken.transfer(_to, _lpToken.balanceOf(address(this)));
+        _lpToken.transfer(_receiver, _lpToken.balanceOf(address(this)));
 
-        emit LiquidityUnlocked(_pair, _to);
+        emit LiquidityTokensUnlocked(_pair, _receiver);
     }
 
     function transferLock(address _pair, address _to) external {
         address _currentOwner = _pairInfo[_pair].owner;
         if (msg.sender != _currentOwner) {
-            revert Unauthorized();
+            revert MemeFactory__Unauthorized();
         }
 
         _pairInfo[_pair].owner = _to;
@@ -135,15 +147,18 @@ contract MemeFactory is Ownable {
         string memory name,
         string memory symbol,
         uint256 totalSupply,
-        uint256 _releaseTime
+        uint256 _tradingStartsAt
     ) internal returns (Token _token) {
+        if (totalSupply == 0 || _tradingStartsAt < block.timestamp) {
+            revert MemeFactory__WrongLaunchArguments();
+        }
         _token = new Token(
             name,
             symbol,
             totalSupply,
             stratosphere,
             address(this),
-            _releaseTime,
+            _tradingStartsAt,
             whitelist
         );
     }

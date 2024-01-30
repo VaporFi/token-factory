@@ -4,21 +4,20 @@ pragma solidity ^0.8.22;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IStratosphere} from "./interfaces/IStratosphere.sol";
+
+error Token__MissingLiquidityPool();
+error Token__ExceedsMaximumHolding();
+error Token__TradingNotStarted();
+error Token__NonStratosphereNFTHolder();
 
 contract Token is ERC20, ERC20Permit, Ownable {
     address public liquidityPool;
     uint256 public immutable maxHoldingAmount;
     uint256 public immutable tradingStartsAt;
-    IERC721 public immutable stratosphere;
+    IStratosphere public immutable stratosphere;
 
     mapping(address => bool) public whitelist;
-
-    error Unauthorized();
-    error MissingLiquidityPool();
-    error ExceedsMaximumHolding();
-    error TradingNotStarted();
-    error NonStratosphereNFTHolder();
 
     constructor(
         string memory _name,
@@ -30,9 +29,9 @@ contract Token is ERC20, ERC20Permit, Ownable {
         address[] memory _whitelist
     ) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(_owner) {
         whitelist[msg.sender] = true;
-        stratosphere = IERC721(_stratosphereAddress);
+        stratosphere = IStratosphere(_stratosphereAddress);
         _mint(msg.sender, _supply);
-        maxHoldingAmount = _supply / 100; // 1% of total supply
+        maxHoldingAmount = percentage(_supply, 100); // 1% of total supply
         tradingStartsAt = _tradingStartsAt;
 
         for (uint256 i = 0; i < _whitelist.length; i++) {
@@ -42,7 +41,7 @@ contract Token is ERC20, ERC20Permit, Ownable {
 
     function setLiquidityPool(address _liquidityPool) external onlyOwner {
         if (_liquidityPool == address(0)) {
-            revert MissingLiquidityPool();
+            revert Token__MissingLiquidityPool();
         }
         liquidityPool = _liquidityPool;
         whitelist[_liquidityPool] = true;
@@ -66,7 +65,7 @@ contract Token is ERC20, ERC20Permit, Ownable {
         }
 
         if (block.timestamp < _tradingStartsAt) {
-            revert TradingNotStarted();
+            revert Token__TradingNotStarted();
         }
 
         uint256 _secondsSinceTradingStarted = block.timestamp -
@@ -89,8 +88,9 @@ contract Token is ERC20, ERC20Permit, Ownable {
     }
 
     function _enforceStratosphereHolder(address _address) internal view {
-        if (stratosphere.balanceOf(_address) == 0) {
-            revert NonStratosphereNFTHolder();
+        // Checking Main and All Linked Wallets
+        if (stratosphere.tokenIdOf(_address) == 0) {
+            revert Token__NonStratosphereNFTHolder();
         }
     }
 
@@ -98,8 +98,15 @@ contract Token is ERC20, ERC20Permit, Ownable {
         if (to != liquidityPool) {
             uint256 newBalance = balanceOf(to) + value;
             if (newBalance > maxHoldingAmount) {
-                revert ExceedsMaximumHolding();
+                revert Token__ExceedsMaximumHolding();
             }
         }
+    }
+
+    function percentage(
+        uint256 _number,
+        uint256 _percentage
+    ) public pure returns (uint256) {
+        return (_number * _percentage) / 10_000;
     }
 }
