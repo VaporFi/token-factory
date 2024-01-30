@@ -31,7 +31,7 @@ contract Token is ERC20, ERC20Permit, Ownable {
         whitelist[msg.sender] = true;
         stratosphere = IStratosphere(_stratosphereAddress);
         _mint(msg.sender, _supply);
-        maxHoldingAmount = percentage(_supply, 100); // 1% of total supply
+        maxHoldingAmount = _percentage(_supply, 100); // 1% of total supply
         tradingStartsAt = _tradingStartsAt;
 
         for (uint256 i = 0; i < _whitelist.length; i++) {
@@ -103,10 +103,10 @@ contract Token is ERC20, ERC20Permit, Ownable {
         }
     }
 
-    function percentage(
+    function _percentage(
         uint256 _number,
         uint256 _percentage
-    ) public pure returns (uint256) {
+    ) internal pure returns (uint256) {
         return (_number * _percentage) / 10_000;
     }
 }
