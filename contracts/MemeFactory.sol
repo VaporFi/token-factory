@@ -34,7 +34,7 @@ contract MemeFactory is Ownable {
     event TokenLaunched(
         address indexed _tokenAddress,
         address indexed _pairAddress,
-        bool _liquidityLocked
+        bool _liquidityBurned
     );
 
     event StreamCreated(uint256 indexed _streamId);
@@ -55,7 +55,7 @@ contract MemeFactory is Ownable {
         address _vaporDexAdapter,
         address _usdc,
         uint256 _launchFee,
-        ISablierV2LockupLinear _sablier
+        address _sablier
     ) Ownable(_owner) {
         if (
             _owner == address(0) ||
@@ -65,7 +65,7 @@ contract MemeFactory is Ownable {
             _vaporDexAdapter == address(0) ||
             _usdc == address(0) ||
             _launchFee == 0 ||
-            address(_sablier) == address(0)
+            _sablier == address(0)
         ) {
             revert MemeFactory__WrongConstructorArguments();
         }
@@ -79,7 +79,7 @@ contract MemeFactory is Ownable {
         vaporDexAggregator = _vaporDexAggregator;
         vaporDexAdapter = _vaporDexAdapter;
         launchFee = _launchFee;
-        sablier = _sablier;
+        sablier = ISablierV2LockupLinear(sablier);
     }
 
     function launch(
@@ -159,14 +159,16 @@ contract MemeFactory is Ownable {
             emit StreamCreated(streamId);
         }
 
-        emit TokenLaunched(_tokenAddress, _pair, true);
+        emit TokenLaunched(_tokenAddress, _pair, _burnLiquidity);
     }
 
     function unlockLiquidityTokens(address _pair, address _receiver) external {
+        // TODO: Add Logic
         emit LiquidityTokensUnlocked(_pair, _receiver);
     }
 
     function transferLock(address _pair, address _to) external {
+        // TODO: Add Logic
         emit LiquidityTransferred(_pair, _to);
     }
 
