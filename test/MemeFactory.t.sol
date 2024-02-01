@@ -21,7 +21,8 @@ contract MemeFactoryTest is Test {
             _owner,
             _router,
             _stratosphere,
-            _whitelist
+            _whitelist[0],
+            _whitelist[1]
         );
     }
 

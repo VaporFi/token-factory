@@ -13,11 +13,11 @@ error Token__NonStratosphereNFTHolder();
 
 contract Token is ERC20, ERC20Permit, Ownable {
     address public liquidityPool;
+    address public immutable dexAggregator;
+    address public immutable dexAdapter;
     uint256 public immutable maxHoldingAmount;
     uint256 public immutable tradingStartsAt;
     IStratosphere public immutable stratosphere;
-
-    mapping(address => bool) public whitelist;
 
     constructor(
         string memory _name,
@@ -26,17 +26,15 @@ contract Token is ERC20, ERC20Permit, Ownable {
         address _stratosphereAddress,
         address _owner,
         uint256 _tradingStartsAt,
-        address[] memory _whitelist
+        address _dexAggregator,
+        address _dexAdapter
     ) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(_owner) {
-        whitelist[msg.sender] = true;
         stratosphere = IStratosphere(_stratosphereAddress);
         _mint(msg.sender, _supply);
         maxHoldingAmount = _percentage(_supply, 100); // 1% of total supply
         tradingStartsAt = _tradingStartsAt;
-
-        for (uint256 i = 0; i < _whitelist.length; i++) {
-            whitelist[_whitelist[i]] = true;
-        }
+        dexAggregator = _dexAggregator;
+        dexAdapter = _dexAdapter;
     }
 
     function setLiquidityPool(address _liquidityPool) external onlyOwner {
@@ -44,7 +42,6 @@ contract Token is ERC20, ERC20Permit, Ownable {
             revert Token__MissingLiquidityPool();
         }
         liquidityPool = _liquidityPool;
-        whitelist[_liquidityPool] = true;
     }
 
     /// @dev Replacement for _beforeTokenTransfer() since OZ v5
@@ -75,7 +72,19 @@ contract Token is ERC20, ERC20Permit, Ownable {
             return;
         }
 
-        if (whitelist[from] || whitelist[to]) {
+        if (from == owner() || to == owner()) {
+            return;
+        }
+
+        if (from == liquidityPool || to == liquidityPool) {
+            return;
+        }
+
+        if (from == dexAggregator || to == dexAggregator) {
+            return;
+        }
+
+        if (from == dexAdapter || to == dexAdapter) {
             return;
         }
 

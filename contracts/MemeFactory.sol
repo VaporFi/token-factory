@@ -18,7 +18,8 @@ contract MemeFactory is Ownable {
     address public immutable router;
     address public immutable WETH;
     address public immutable stratosphere;
-    address[] public whitelist;
+    address public immutable vaporDexAggregator;
+    address public immutable vaporDexAdapter;
 
     struct LiquidityLock {
         address owner;
@@ -44,15 +45,19 @@ contract MemeFactory is Ownable {
         address _owner,
         address _routerAddress,
         address _stratosphereAddress,
-        address[] memory _whitelist
+        address _vaporDexAggregator,
+        address _vaporDexAdapter
     ) Ownable(_owner) {
         if (
-            _owner == address(0) ||
-            _routerAddress == address(0) ||
-            _stratosphereAddress == address(0) ||
-            _owner == _routerAddress ||
-            _owner == _stratosphereAddress ||
-            _routerAddress == _stratosphereAddress
+            _checkParams(
+                abi.encode(
+                    _owner,
+                    _routerAddress,
+                    _stratosphereAddress,
+                    _vaporDexAggregator,
+                    _vaporDexAdapter
+                )
+            )
         ) {
             revert MemeFactory__WrongConstructorArguments();
         }
@@ -62,7 +67,8 @@ contract MemeFactory is Ownable {
         factory = _router.factory();
         WETH = _router.WETH();
         stratosphere = _stratosphereAddress;
-        whitelist = _whitelist;
+        vaporDexAggregator = _vaporDexAggregator;
+        vaporDexAdapter = _vaporDexAdapter;
     }
 
     function launch(
@@ -76,7 +82,9 @@ contract MemeFactory is Ownable {
             _name,
             _symbol,
             _totalSupply,
-            _tradingStartsAt
+            _tradingStartsAt,
+            vaporDexAggregator,
+            vaporDexAdapter
         );
         _tokenAddress = address(_token);
 
@@ -147,7 +155,9 @@ contract MemeFactory is Ownable {
         string memory name,
         string memory symbol,
         uint256 totalSupply,
-        uint256 _tradingStartsAt
+        uint256 _tradingStartsAt,
+        address dexAggregator,
+        address dexAdapter
     ) internal returns (Token _token) {
         if (totalSupply == 0 || _tradingStartsAt < block.timestamp) {
             revert MemeFactory__WrongLaunchArguments();
@@ -159,7 +169,40 @@ contract MemeFactory is Ownable {
             stratosphere,
             address(this),
             _tradingStartsAt,
-            whitelist
+            dexAggregator,
+            dexAdapter
         );
+    }
+
+    function _checkParams(
+        bytes memory params
+    ) internal pure returns (bool shouldRevert) {
+        (
+            address _owner,
+            address _routerAddress,
+            address _stratosphereAddress,
+            address _vaporDexAggregator,
+            address _vaporDexAdapter
+        ) = abi.decode(params, (address, address, address, address, address));
+        if (
+            _owner == address(0) ||
+            _routerAddress == address(0) ||
+            _stratosphereAddress == address(0) ||
+            _vaporDexAggregator == address(0) ||
+            _vaporDexAdapter == address(0) ||
+            _owner == _routerAddress ||
+            _owner == _stratosphereAddress ||
+            _owner == _vaporDexAggregator ||
+            _owner == _vaporDexAdapter ||
+            _routerAddress == _stratosphereAddress ||
+            _routerAddress == _vaporDexAggregator ||
+            _routerAddress == _vaporDexAdapter ||
+            _stratosphereAddress == _vaporDexAggregator ||
+            _stratosphereAddress == _vaporDexAdapter ||
+            _vaporDexAggregator == _vaporDexAdapter
+        ) {
+            shouldRevert = true;
+        }
+        shouldRevert = false;
     }
 }
