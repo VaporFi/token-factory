@@ -12,14 +12,17 @@ error MemeFactory__LiquidityStillLocked();
 error MemeFactory__Unauthorized();
 error MemeFactory__ZeroAddress();
 error MemeFactory__WrongLaunchArguments();
+error MemeFactory__InsufficientBalance();
 
 contract MemeFactory is Ownable {
     address public immutable factory;
     address public immutable router;
-    address public immutable WETH;
     address public immutable stratosphere;
     address public immutable vaporDexAggregator;
     address public immutable vaporDexAdapter;
+    address public immutable WETH;
+    address public immutable USDC;
+    uint256 public launchFee;
 
     struct LiquidityLock {
         address owner;
@@ -46,16 +49,18 @@ contract MemeFactory is Ownable {
         address _routerAddress,
         address _stratosphereAddress,
         address _vaporDexAggregator,
-        address _vaporDexAdapter
+        address _vaporDexAdapter,
+        address _usdc,
+        uint256 _launchFee
     ) Ownable(_owner) {
         if (
-            _checkParams(
-                _owner,
-                _routerAddress,
-                _stratosphereAddress,
-                _vaporDexAggregator,
-                _vaporDexAdapter
-            )
+            _owner == address(0) ||
+            _routerAddress == address(0) ||
+            _stratosphereAddress == address(0) ||
+            _vaporDexAggregator == address(0) ||
+            _vaporDexAdapter == address(0) ||
+            _usdc == address(0) ||
+            _launchFee == 0
         ) {
             revert MemeFactory__WrongConstructorArguments();
         }
@@ -64,9 +69,11 @@ contract MemeFactory is Ownable {
         IVaporDEXRouter _router = IVaporDEXRouter(_routerAddress);
         factory = _router.factory();
         WETH = _router.WETH();
+        USDC = _usdc;
         stratosphere = _stratosphereAddress;
         vaporDexAggregator = _vaporDexAggregator;
         vaporDexAdapter = _vaporDexAdapter;
+        launchFee = _launchFee;
     }
 
     function launch(
@@ -75,6 +82,13 @@ contract MemeFactory is Ownable {
         uint256 _totalSupply,
         uint256 _tradingStartsAt
     ) external payable returns (address _pair, address _tokenAddress) {
+        // Step 0: Transfer Fee
+        ERC20 _usdc = ERC20(USDC);
+        if (_usdc.balanceOf(msg.sender) < launchFee) {
+            revert MemeFactory__InsufficientBalance();
+        }
+        _usdc.transferFrom(msg.sender, address(this), launchFee);
+
         // Step 1: Create the token
         Token _token = _createToken(
             _name,
@@ -172,32 +186,9 @@ contract MemeFactory is Ownable {
         );
     }
 
-    function _checkParams(
-        address _owner,
-        address _routerAddress,
-        address _stratosphereAddress,
-        address _vaporDexAggregator,
-        address _vaporDexAdapter
-    ) internal pure returns (bool shouldRevert) {
-        if (
-            _owner == address(0) ||
-            _routerAddress == address(0) ||
-            _stratosphereAddress == address(0) ||
-            _vaporDexAggregator == address(0) ||
-            _vaporDexAdapter == address(0) ||
-            _owner == _routerAddress ||
-            _owner == _stratosphereAddress ||
-            _owner == _vaporDexAggregator ||
-            _owner == _vaporDexAdapter ||
-            _routerAddress == _stratosphereAddress ||
-            _routerAddress == _vaporDexAggregator ||
-            _routerAddress == _vaporDexAdapter ||
-            _stratosphereAddress == _vaporDexAggregator ||
-            _stratosphereAddress == _vaporDexAdapter ||
-            _vaporDexAggregator == _vaporDexAdapter
-        ) {
-            shouldRevert = true;
-        }
-        shouldRevert = false;
+    function setLaunchFee(uint256 _launchFee) public onlyOwner {
+        launchFee = _launchFee;
     }
+
+    // TODO: Add Fee Withdraw Function
 }
