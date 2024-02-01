@@ -2,10 +2,12 @@
 pragma solidity ^0.8.22;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IVaporDEXFactory} from "./interfaces/IVaporDEXFactory.sol";
 import {IVaporDEXRouter} from "./interfaces/IVaporDEXRouter.sol";
 import {Token} from "./Token.sol";
+import {ISablierV2LockupLinear} from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
+import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
 
 error MemeFactory__WrongConstructorArguments();
 error MemeFactory__LiquidityStillLocked();
@@ -13,28 +15,29 @@ error MemeFactory__Unauthorized();
 error MemeFactory__ZeroAddress();
 error MemeFactory__WrongLaunchArguments();
 error MemeFactory__InsufficientBalance();
+error MemeFactory__Invalid();
 
 contract MemeFactory is Ownable {
     address public immutable factory;
     address public immutable router;
     address public immutable stratosphere;
     address public immutable vaporDexAggregator;
-    address public immutable vaporDexAdapter;
     address public immutable WETH;
     address public immutable USDC;
+    address public vaporDexAdapter;
     uint256 public launchFee;
 
-    struct LiquidityLock {
-        address owner;
-        address pair;
-        uint256 unlocksAt;
-    }
-    mapping(address => LiquidityLock) private _pairInfo;
+    // Sablier
+
+    ISablierV2LockupLinear public immutable sablier;
 
     event TokenLaunched(
         address indexed _tokenAddress,
-        address indexed _pairAddress
+        address indexed _pairAddress,
+        bool _liquidityLocked
     );
+
+    event StreamCreated(uint256 indexed _streamId);
     event LiquidityTokensUnlocked(
         address indexed _pairAddress,
         address indexed _receiver
@@ -51,7 +54,8 @@ contract MemeFactory is Ownable {
         address _vaporDexAggregator,
         address _vaporDexAdapter,
         address _usdc,
-        uint256 _launchFee
+        uint256 _launchFee,
+        ISablierV2LockupLinear _sablier
     ) Ownable(_owner) {
         if (
             _owner == address(0) ||
@@ -60,7 +64,8 @@ contract MemeFactory is Ownable {
             _vaporDexAggregator == address(0) ||
             _vaporDexAdapter == address(0) ||
             _usdc == address(0) ||
-            _launchFee == 0
+            _launchFee == 0 ||
+            address(_sablier) == address(0)
         ) {
             revert MemeFactory__WrongConstructorArguments();
         }
@@ -74,20 +79,18 @@ contract MemeFactory is Ownable {
         vaporDexAggregator = _vaporDexAggregator;
         vaporDexAdapter = _vaporDexAdapter;
         launchFee = _launchFee;
+        sablier = _sablier;
     }
 
     function launch(
         string memory _name,
         string memory _symbol,
         uint256 _totalSupply,
-        uint256 _tradingStartsAt
+        uint256 _tradingStartsAt,
+        bool _burnLiquidity
     ) external payable returns (address _pair, address _tokenAddress) {
         // Step 0: Transfer Fee
-        ERC20 _usdc = ERC20(USDC);
-        if (_usdc.balanceOf(msg.sender) < launchFee) {
-            revert MemeFactory__InsufficientBalance();
-        }
-        _usdc.transferFrom(msg.sender, address(this), launchFee);
+        _transferLaunchFee(msg.sender);
 
         // Step 1: Create the token
         Token _token = _createToken(
@@ -125,41 +128,45 @@ contract MemeFactory is Ownable {
         _token.setLiquidityPool(_pair);
         // Step 5: Renounce ownership of the token
         _token.renounceOwnership();
-        // Step 6: lock the LP tokens for 365 days
-        _pairInfo[_pair] = LiquidityLock({
-            owner: msg.sender,
-            pair: _pair,
-            unlocksAt: block.timestamp + 365 days
-        });
 
-        emit TokenLaunched(_tokenAddress, _pair);
+        // Step 6: Lock Or Burn Liquidity
+
+        IERC20 _lpToken = IERC20(_pair);
+
+        if (_burnLiquidity) {
+            // Burn Liquidity
+        } else {
+            // Lock Liquidity
+            // Declare the params struct
+            LockupLinear.CreateWithDurations memory params;
+
+            // Declare the function parameters
+            params.sender = address(this); // The sender will be able to cancel the stream
+            params.recipient = msg.sender; // The recipient of the streamed assets
+            params.totalAmount = uint128(_lpToken.balanceOf(address(this))); // Total amount is the amount inclusive of all fees
+            params.asset = IERC20(USDC); // The streaming asset
+            params.cancelable = false; // Whether the stream will be cancelable or not
+            params.transferable = true; // Whether the stream will be transferrable or not
+            params.durations = LockupLinear.Durations({
+                cliff: 365 days, // Assets will be unlocked only after the cliff period
+                total: 0 days // TODO: Set this to the total lockup period
+            });
+
+            // Create the stream
+
+            uint256 streamId = sablier.createWithDurations(params);
+
+            emit StreamCreated(streamId);
+        }
+
+        emit TokenLaunched(_tokenAddress, _pair, true);
     }
 
     function unlockLiquidityTokens(address _pair, address _receiver) external {
-        if (_pairInfo[_pair].unlocksAt > block.timestamp) {
-            revert MemeFactory__LiquidityStillLocked();
-        }
-        if (_pairInfo[_pair].owner != msg.sender) {
-            revert MemeFactory__Unauthorized();
-        }
-        _pairInfo[_pair].owner = address(0);
-        _pairInfo[_pair].pair = address(0);
-        _pairInfo[_pair].unlocksAt = 0;
-
-        ERC20 _lpToken = ERC20(_pair);
-        _lpToken.transfer(_receiver, _lpToken.balanceOf(address(this)));
-
         emit LiquidityTokensUnlocked(_pair, _receiver);
     }
 
     function transferLock(address _pair, address _to) external {
-        address _currentOwner = _pairInfo[_pair].owner;
-        if (msg.sender != _currentOwner) {
-            revert MemeFactory__Unauthorized();
-        }
-
-        _pairInfo[_pair].owner = _to;
-
         emit LiquidityTransferred(_pair, _to);
     }
 
@@ -187,8 +194,29 @@ contract MemeFactory is Ownable {
     }
 
     function setLaunchFee(uint256 _launchFee) public onlyOwner {
+        if (_launchFee == 0) {
+            revert MemeFactory__Invalid();
+        }
         launchFee = _launchFee;
     }
 
-    // TODO: Add Fee Withdraw Function
+    function setVaporDEXAdapter(address _vaporDexAdapter) public onlyOwner {
+        if (_vaporDexAdapter == vaporDexAdapter) {
+            revert MemeFactory__Invalid();
+        }
+        vaporDexAdapter = _vaporDexAdapter;
+    }
+
+    function _transferLaunchFee(address _from) internal {
+        IERC20 _usdc = IERC20(USDC);
+        if (_usdc.balanceOf(_from) < launchFee) {
+            revert MemeFactory__InsufficientBalance();
+        }
+        _usdc.transferFrom(_from, address(this), launchFee);
+    }
+
+    function withdrawFee(address _to) public onlyOwner {
+        IERC20 _usdc = IERC20(USDC);
+        _usdc.transfer(_to, _usdc.balanceOf(address(this)));
+    }
 }
