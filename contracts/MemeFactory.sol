@@ -50,13 +50,11 @@ contract MemeFactory is Ownable {
     ) Ownable(_owner) {
         if (
             _checkParams(
-                abi.encode(
-                    _owner,
-                    _routerAddress,
-                    _stratosphereAddress,
-                    _vaporDexAggregator,
-                    _vaporDexAdapter
-                )
+                _owner,
+                _routerAddress,
+                _stratosphereAddress,
+                _vaporDexAggregator,
+                _vaporDexAdapter
             )
         ) {
             revert MemeFactory__WrongConstructorArguments();
@@ -175,15 +173,12 @@ contract MemeFactory is Ownable {
     }
 
     function _checkParams(
-        bytes memory params
+        address _owner,
+        address _routerAddress,
+        address _stratosphereAddress,
+        address _vaporDexAggregator,
+        address _vaporDexAdapter
     ) internal pure returns (bool shouldRevert) {
-        (
-            address _owner,
-            address _routerAddress,
-            address _stratosphereAddress,
-            address _vaporDexAggregator,
-            address _vaporDexAdapter
-        ) = abi.decode(params, (address, address, address, address, address));
         if (
             _owner == address(0) ||
             _routerAddress == address(0) ||

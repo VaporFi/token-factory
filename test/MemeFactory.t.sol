@@ -16,7 +16,6 @@ contract MemeFactoryTest is Test {
 
         _whitelist[0] = 0x184eaB8D97cE56Cf77e2571e8f1D6F697076a831;
         _whitelist[1] = 0x3F1aF4D92c91511A0BCe4B21bc256bF63bcab470;
-
         memeFactory = new MemeFactory(
             _owner,
             _router,
