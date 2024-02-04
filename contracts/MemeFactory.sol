@@ -30,6 +30,7 @@ contract MemeFactory is Ownable {
     // Sablier
 
     ISablierV2LockupLinear public immutable sablier;
+    mapping(address => mapping(address => uint256)) public liquidityLocks;
 
     event TokenLaunched(
         address indexed _tokenAddress,
@@ -38,6 +39,11 @@ contract MemeFactory is Ownable {
     );
 
     event StreamCreated(uint256 indexed _streamId);
+    event LiquidityBurned(
+        address indexed pair,
+        address indexed _burner,
+        uint256 _amount
+    );
     event LiquidityTokensUnlocked(
         address indexed _pairAddress,
         address indexed _receiver
@@ -79,7 +85,7 @@ contract MemeFactory is Ownable {
         vaporDexAggregator = _vaporDexAggregator;
         vaporDexAdapter = _vaporDexAdapter;
         launchFee = _launchFee;
-        sablier = ISablierV2LockupLinear(sablier);
+        sablier = ISablierV2LockupLinear(_sablier);
     }
 
     function launch(
@@ -88,7 +94,11 @@ contract MemeFactory is Ownable {
         uint256 _totalSupply,
         uint256 _tradingStartsAt,
         bool _burnLiquidity
-    ) external payable returns (address _pair, address _tokenAddress) {
+    )
+        external
+        payable
+        returns (address _pair, address _tokenAddress, uint256 streamId)
+    {
         // Step 0: Transfer Fee
         _transferLaunchFee(msg.sender);
 
@@ -135,7 +145,17 @@ contract MemeFactory is Ownable {
 
         if (_burnLiquidity) {
             // Burn Liquidity
+            _lpToken.transfer(address(0), _lpToken.balanceOf(address(this)));
+            emit LiquidityBurned(
+                _pair,
+                msg.sender,
+                _lpToken.balanceOf(address(this))
+            );
         } else {
+            _lpToken.approve(
+                address(sablier),
+                _lpToken.balanceOf(address(this))
+            );
             // Lock Liquidity
             // Declare the params struct
             LockupLinear.CreateWithDurations memory params;
@@ -144,17 +164,18 @@ contract MemeFactory is Ownable {
             params.sender = address(this); // The sender will be able to cancel the stream
             params.recipient = msg.sender; // The recipient of the streamed assets
             params.totalAmount = uint128(_lpToken.balanceOf(address(this))); // Total amount is the amount inclusive of all fees
-            params.asset = IERC20(USDC); // The streaming asset
+            params.asset = _lpToken; // The streaming asset
             params.cancelable = false; // Whether the stream will be cancelable or not
             params.transferable = true; // Whether the stream will be transferrable or not
             params.durations = LockupLinear.Durations({
-                cliff: 365 days, // Assets will be unlocked only after the cliff period
-                total: 0 days // TODO: Set this to the total lockup period
+                cliff: 365 days - 1 seconds, // Assets will be unlocked only after the cliff period
+                total: 365 days
             });
 
             // Create the stream
 
-            uint256 streamId = sablier.createWithDurations(params);
+            streamId = sablier.createWithDurations(params);
+            liquidityLocks[msg.sender][_pair] = streamId;
 
             emit StreamCreated(streamId);
         }
@@ -162,13 +183,40 @@ contract MemeFactory is Ownable {
         emit TokenLaunched(_tokenAddress, _pair, _burnLiquidity);
     }
 
+    // Will not be used in the UI
+    // Recommended to direct user to Sablier UI for better error handling
     function unlockLiquidityTokens(address _pair, address _receiver) external {
-        // TODO: Add Logic
+        uint256 streamId = liquidityLocks[msg.sender][_pair];
+        if (streamId == 0) {
+            revert MemeFactory__Unauthorized();
+        }
+
+        if (_receiver == address(0)) {
+            revert MemeFactory__ZeroAddress();
+        }
+        sablier.withdrawMax({streamId: streamId, to: _receiver}); // Other reverts are handled by Sablier
+
+        // Safe
+        liquidityLocks[msg.sender][_pair] = 0;
         emit LiquidityTokensUnlocked(_pair, _receiver);
     }
 
+    // Will not be used in the UI
+    // Recommended to direct user to Sablier UI for better error handling
     function transferLock(address _pair, address _to) external {
-        // TODO: Add Logic
+        uint256 streamId = liquidityLocks[msg.sender][_pair];
+        if (streamId == 0) {
+            revert MemeFactory__Unauthorized();
+        }
+
+        if (_to == address(0)) {
+            revert MemeFactory__ZeroAddress();
+        }
+
+        sablier.transferFrom({from: msg.sender, to: _to, tokenId: streamId}); // Other reverts are handled by Sablier
+
+        // Safe
+        liquidityLocks[_to][_pair] = streamId;
         emit LiquidityTransferred(_pair, _to);
     }
 
