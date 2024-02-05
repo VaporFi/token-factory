@@ -57,6 +57,9 @@ contract MemeFactory is Ownable {
         address indexed _pairAddress,
         address indexed _to
     );
+    event LaunchFeeUpdated(uint256 _newFee);
+    event VaporDEXAdapterUpdated(address _newAdapter);
+    event AccumulatedFeesWithdrawn(address _to, uint256 _amount);
 
     ///////////////
     /// STORAGE ///
@@ -72,9 +75,9 @@ contract MemeFactory is Ownable {
     uint256 public launchFee;
 
     // Sablier
-    ISablierV2LockupLinear public immutable sablier;
-    // Mapping to store the streamId for each pair and owner
-    mapping(address => mapping(address => uint256)) public liquidityLocks;
+    ISablierV2LockupLinear private immutable sablier;
+    // Mapping to store the streamId for each pair and lp owner
+    mapping(address => mapping(address => uint256)) private liquidityLocks;
 
    
     /////////////////////////
@@ -290,6 +293,7 @@ contract MemeFactory is Ownable {
             revert MemeFactory__Invalid();
         }
         launchFee = _launchFee;
+        emit LaunchFeeUpdated(_launchFee);
     }
 
     /**
@@ -302,6 +306,7 @@ contract MemeFactory is Ownable {
             revert MemeFactory__Invalid();
         }
         vaporDexAdapter = _vaporDexAdapter;
+        emit VaporDEXAdapterUpdated(_vaporDexAdapter);
     }
 
     /**
@@ -315,7 +320,24 @@ contract MemeFactory is Ownable {
         }
         IERC20 _usdc = IERC20(USDC);
         _usdc.transfer(_to, _usdc.balanceOf(address(this)));
+        emit AccumulatedFeesWithdrawn(_to, _usdc.balanceOf(address(this)));
     }
+
+    /**
+     * @dev Returns the liquidity lock for the specified pair and owner.
+     * @param _pair Address of the token pair.
+     * @param _owner Address of the owner.
+     * @return uint256 Stream ID for the liquidity lock.
+     */
+
+    function getLiquidityLock(address _pair, address _owner)
+        external
+        view
+        returns (uint256)
+    {
+        return liquidityLocks[_owner][_pair];
+    }
+
 
     /**
      * @dev Creates a new Token contract with specified parameters.

@@ -5,11 +5,13 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IStratosphere} from "./interfaces/IStratosphere.sol";
+import "forge-std/console.sol";
 
 error Token__MissingLiquidityPool();
 error Token__ExceedsMaximumHolding();
 error Token__TradingNotStarted();
 error Token__NonStratosphereNFTHolder();
+error Token__BotDetected();
 
 contract Token is ERC20, ERC20Permit, Ownable {
     address public liquidityPool;
@@ -44,7 +46,7 @@ contract Token is ERC20, ERC20Permit, Ownable {
         liquidityPool = _liquidityPool;
     }
 
-    /// @dev Replacement for _beforeTokenTransfer() since OZ v5
+   /// @dev Replacement for _beforeTokenTransfer() since OZ v5
     function _update(
         address from,
         address to,
@@ -72,34 +74,20 @@ contract Token is ERC20, ERC20Permit, Ownable {
             return;
         }
 
-        if (from == owner() || to == owner()) {
-            return;
-        }
+        //TODO: Have better checks
 
-        if (from == liquidityPool || to == liquidityPool) {
-            return;
-        }
-
-        if (from == dexAggregator || to == dexAggregator) {
-            return;
-        }
-
-        if (from == dexAdapter || to == dexAdapter) {
-            return;
+        if (isContract(from) && isContract(to)) {
+            revert Token__BotDetected();
         }
 
         if (_secondsSinceTradingStarted < 1 hours) {
-            _enforceStratosphereHolder(to);
             _enforceAntiWhale(to, value);
+            bool isStratMember = isStratosphereHolder(from) || isStratosphereHolder(to);
+            if (!isStratMember) {
+                revert Token__NonStratosphereNFTHolder();
+            }
         } else if (_secondsSinceTradingStarted < 24 hours) {
             _enforceAntiWhale(to, value);
-        }
-    }
-
-    function _enforceStratosphereHolder(address _address) internal view {
-        // Checking Main and All Linked Wallets
-        if (stratosphere.tokenIdOf(_address) == 0) {
-            revert Token__NonStratosphereNFTHolder();
         }
     }
 
@@ -110,6 +98,22 @@ contract Token is ERC20, ERC20Permit, Ownable {
                 revert Token__ExceedsMaximumHolding();
             }
         }
+    }
+
+    function isContract(address _address) internal view returns (bool) {
+        uint32 size;
+        assembly {
+            size := extcodesize(_address)
+        }
+        return (size > 0) && !isEOA(_address);
+    }
+
+    function isEOA(address _address) internal view returns (bool) {
+        return tx.origin == _address;
+    }
+
+    function isStratosphereHolder(address _address) internal view returns (bool) {
+        return stratosphere.tokenIdOf(_address) != 0;
     }
 
     function _percentage(

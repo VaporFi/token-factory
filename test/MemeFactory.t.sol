@@ -13,7 +13,7 @@ contract MemeFactoryTest is Test {
     MemeFactory memeFactory;
     address _owner = makeAddr("owner");
     address _router = 0x19C0FC4562A4b76F27f86c676eF5a7e38D12a20d;
-    address _stratosphere = 0x65eB37AeB1F2a9cE39556F80044607dD969b0336;
+    address _stratosphere = 0x08e287adCf9BF6773a87e1a278aa9042BEF44b60;
     address _vaporDexAggregator = 0x55477d8537ede381784b448876AfAa98aa450E63;
     address _vaporDexAdapter = 0x01e5C45cB25E30860c2Fb80369A9C27628911a2b;
     ERC20Mock _usdc;
@@ -22,12 +22,21 @@ contract MemeFactoryTest is Test {
         ISablierV2LockupLinear(0xB24B65E015620455bB41deAAd4e1902f1Be9805f);
     address _user = makeAddr("user");
     address _jose = makeAddr("jose");
+    address _hitesh = makeAddr("hitesh");
+    address _roy = makeAddr("roy");
     uint256 minimumLiquidity = 10 ** 3; // https://github.com/VaporFi/vapordex-contracts/blob/staging/contracts/VaporDEX/VaporDEXPair.sol#L21
 
     function setUp() public {
         vm.createSelectFork("https://api.avax.network/ext/bc/C/rpc");
         _usdc = new ERC20Mock("USDC", "USDC"); // 18 Decimals
-        vm.deal(_user, 100 ether);
+        _usdc.mint(address(_user), 100000000 ether);
+        _usdc.mint(address(_jose), 100000000 ether);
+        _usdc.mint(address(_hitesh), 100000000 ether);
+        _usdc.mint(address(_roy), 100000000 ether);
+        vm.deal(_user, 10000000 ether);
+        vm.deal(_jose, 10000000 ether);
+        vm.deal(_hitesh, 10000000 ether);
+        vm.deal(_roy, 10000000 ether);
         vm.startPrank(_owner);
         memeFactory = new MemeFactory(
             _owner,
@@ -283,7 +292,6 @@ contract MemeFactoryTest is Test {
         bool lpBurn
     ) internal returns (address pair, address tokenAddress, uint256 streamId) {
         uint256 launchFeeContract = memeFactory.launchFee();
-        _usdc.mint(address(_user), launchFeeContract);
         _usdc.approve(address(memeFactory), launchFeeContract);
 
         (address _pair, address _tokenAddress, uint256 _streamId) = memeFactory
