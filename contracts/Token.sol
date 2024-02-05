@@ -99,7 +99,9 @@ contract Token is ERC20, ERC20Permit, Ownable {
             }
         }
     }
-
+    
+    // Can be exploited using "Constructor" method by serves our purpose
+   // Minting strat requires less effort than hack
     function isContract(address _address) internal view returns (bool) {
         uint32 size;
         assembly {
