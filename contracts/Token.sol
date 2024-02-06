@@ -75,7 +75,7 @@ contract Token is ERC20, ERC20Permit, Ownable {
 
         if (_secondsSinceTradingStarted < 1 hours) {
             _enforceAntiWhale(to, value);
-            if (!(isStratosphereMemberOrAdmin(from) && isStratosphereMemberOrAdmin(to))) {
+            if (!(_isStratosphereMemberOrAdmin(from) && _isStratosphereMemberOrAdmin(to))) {
                 revert Token__NonStratosphereNFTHolder();
             }
         } else if (_secondsSinceTradingStarted < 24 hours) {
@@ -92,7 +92,7 @@ contract Token is ERC20, ERC20Permit, Ownable {
         }
     }
 
-    function isStratosphereMemberOrAdmin(address _address) internal view returns (bool pass) {
+    function _isStratosphereMemberOrAdmin(address _address) internal view returns (bool pass) {
         if (_address == dexAggregator || _address == dexAdapter || stratosphere.tokenIdOf(_address) != 0 ||
         _address == liquidityPool) {
             pass = true;
