@@ -91,7 +91,9 @@ contract Token is ERC20, ERC20Permit, Ownable {
             }
         }
     }
-
+    
+    // Can be exploited using "Constructor" method by serves our purpose
+   // Minting strat requires less effort than hack
     function isStratosphereMemberOrAdmin(address _address) internal view returns (bool pass) {
         if (_address == dexAggregator || _address == dexAdapter || stratosphere.tokenIdOf(_address) != 0 ||
         _address == liquidityPool) {
