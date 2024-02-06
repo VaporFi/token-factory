@@ -7,7 +7,6 @@ import "forge-std/console.sol";
 import {IStratosphere} from "../contracts/interfaces/IStratosphere.sol";
 import {Token__NonStratosphereNFTHolder, Token__TradingNotStarted, Token__ExceedsMaximumHolding} from "../contracts/Token.sol";
 
-
 contract TokenTest is MemeFactoryTest {
     IERC20 public token;
     IERC20 public pair;
@@ -61,22 +60,22 @@ contract TokenTest is MemeFactoryTest {
         dexAggregator.swapNoSplitFromAVAX{value: amountIn}(trade, address(_jose), 0);
         assertTrue(token.balanceOf(address(_jose)) == trade.amountOut, "AmountOut not received");
 
-        // // Selling token for AVAX // Not working // Need to check
-        // amountIn = trade.amountOut;
-        // tokenIn = address(token);
-        // tokenOut = address(WNATIVE);
-        // offer = dexAggregator.findBestPath(amountIn, tokenIn, tokenOut, maxSteps);
-        // trade.amountIn = amountIn;
-        // trade.amountOut = offer.amounts[offer.amounts.length - 1];
-        // trade.path = offer.path;
-        // trade.adapters = offer.adapters;
-        // uint256 avaxBalanceBefore = address(_jose).balance;
-        // token.approve(address(dexAggregator), trade.amountIn);
-        // dexAggregator.swapNoSplitToAVAX(trade, address(_jose), 0);
-        // assertTrue(token.balanceOf(address(_jose)) == 0, "Balance not 0");
-        // assertTrue(address(_jose).balance > avaxBalanceBefore, "AVAX not received");
-        // console.log("AVAX received: ", address(_jose).balance - avaxBalanceBefore);
-        // vm.stopPrank();
+        // Selling token for AVAX
+        amountIn = trade.amountOut;
+        tokenIn = address(token);
+        tokenOut = address(WNATIVE);
+        offer = dexAggregator.findBestPath(amountIn, tokenIn, tokenOut, maxSteps);
+        trade.amountIn = amountIn;
+        trade.amountOut = offer.amounts[offer.amounts.length - 1];
+        trade.path = offer.path;
+        trade.adapters = offer.adapters;
+        uint256 avaxBalanceBefore = address(_jose).balance;
+        token.approve(address(dexAggregator), trade.amountIn);
+        dexAggregator.swapNoSplitToAVAX(trade, address(_jose), 0);
+        assertTrue(token.balanceOf(address(_jose)) == 0, "Balance not 0");
+        assertTrue(address(_jose).balance > avaxBalanceBefore, "AVAX not received");
+        console.log("AVAX received: ", address(_jose).balance - avaxBalanceBefore);
+        vm.stopPrank();
     }
 
      function test_TradingStarted_LessThan24Hours_NonStratMember() public {
@@ -257,8 +256,6 @@ contract TokenTest is MemeFactoryTest {
         console.log("AVAX received: ", address(_user).balance - avaxBalanceBefore);
         vm.stopPrank();
     }
-
-   
 
 
     function _mintStratNFT() internal {

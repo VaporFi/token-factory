@@ -5,7 +5,6 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IStratosphere} from "./interfaces/IStratosphere.sol";
-import "forge-std/console.sol";
 
 error Token__MissingLiquidityPool();
 error Token__ExceedsMaximumHolding();
@@ -74,16 +73,9 @@ contract Token is ERC20, ERC20Permit, Ownable {
             return;
         }
 
-        //TODO: Have better checks
-
-        if (isContract(from) && isContract(to)) {
-            revert Token__BotDetected();
-        }
-
         if (_secondsSinceTradingStarted < 1 hours) {
             _enforceAntiWhale(to, value);
-            bool isStratMember = isStratosphereHolder(from) || isStratosphereHolder(to);
-            if (!isStratMember) {
+            if (!(isStratosphereMemberOrAdmin(from) && isStratosphereMemberOrAdmin(to))) {
                 revert Token__NonStratosphereNFTHolder();
             }
         } else if (_secondsSinceTradingStarted < 24 hours) {
@@ -100,20 +92,11 @@ contract Token is ERC20, ERC20Permit, Ownable {
         }
     }
 
-    function isContract(address _address) internal view returns (bool) {
-        uint32 size;
-        assembly {
-            size := extcodesize(_address)
+    function isStratosphereMemberOrAdmin(address _address) internal view returns (bool pass) {
+        if (_address == dexAggregator || _address == dexAdapter || stratosphere.tokenIdOf(_address) != 0 ||
+        _address == liquidityPool) {
+            pass = true;
         }
-        return (size > 0) && !isEOA(_address);
-    }
-
-    function isEOA(address _address) internal view returns (bool) {
-        return tx.origin == _address;
-    }
-
-    function isStratosphereHolder(address _address) internal view returns (bool) {
-        return stratosphere.tokenIdOf(_address) != 0;
     }
 
     function _percentage(
