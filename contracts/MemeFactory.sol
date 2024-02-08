@@ -357,7 +357,7 @@ contract MemeFactory is Ownable {
         address dexAggregator,
         address dexAdapter
     ) internal returns (Token _token) {
-        if (totalSupply == 0 || _tradingStartsAt < block.timestamp) {
+        if (totalSupply == 0 || _tradingStartsAt < block.timestamp + 2 days) {
             revert MemeFactory__WrongLaunchArguments();
         }
         _token = new Token(

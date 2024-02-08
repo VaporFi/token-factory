@@ -54,7 +54,7 @@ contract MemeFactoryTest is Test {
     function test_LaunchWithLPBurn() public {
         vm.startPrank(_user);
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
-            block.timestamp + 1 days,
+            block.timestamp + 2 days,
             true
         );
         
@@ -73,7 +73,7 @@ contract MemeFactoryTest is Test {
     function test_LaunchWithLPLock() public {
         vm.startPrank(_user);
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
-            block.timestamp + 1 days,
+            block.timestamp + 2 days,
             false
         );
 
@@ -100,7 +100,7 @@ contract MemeFactoryTest is Test {
     function test_LPUnlock() public {
         vm.startPrank(_user);
         (address _pair,, uint256 _streamId) = _launch(
-            block.timestamp + 1 days,
+            block.timestamp + 2 days,
             false
         );
 
@@ -136,7 +136,7 @@ contract MemeFactoryTest is Test {
     function test_LPTransfer_BeforeUnlock() public {
         vm.startPrank(_user);
         (address _pair,, uint256 _streamId) = _launch(
-            block.timestamp + 1 days,
+            block.timestamp + 2 days,
             false
         );
 
@@ -167,7 +167,7 @@ contract MemeFactoryTest is Test {
     function test_LPTransfer_AfterUnlock() public {
         vm.startPrank(_user);
         (address _pair,, uint256 _streamId) = _launch(
-            block.timestamp + 1 days,
+            block.timestamp + 2 days,
             false
         );
         
@@ -199,7 +199,7 @@ contract MemeFactoryTest is Test {
         for (uint256 i = 0; i < tokensToLaunch; i++) {
             vm.startPrank(_user);
             (,, uint256 _streamId) = _launch(
-                block.timestamp + 1 days,
+                block.timestamp + 2 days,
                 i % 2 == 0 ? true : false
             );
             if (i % 2 == 0) {
@@ -231,7 +231,7 @@ contract MemeFactoryTest is Test {
         for (uint256 i = 0; i < tokensToLaunch; i++) {
             vm.startPrank(_user);
             (,, uint256 _streamId) = _launch(
-                block.timestamp + 1 days,
+                block.timestamp + 2 days,
                 i % 2 == 0 ? true : false
             );
             if (i % 2 == 0) {
@@ -263,7 +263,7 @@ contract MemeFactoryTest is Test {
 
     function test_Revert_WithdrawFee_NotOwner() public {
         vm.startPrank(_user);
-       _launch(block.timestamp + 1 days, true);
+       _launch(block.timestamp + 2 days, true);
         assertEq(_usdc.balanceOf(address(memeFactory)), launchFee);
         vm.expectRevert();
         memeFactory.withdrawFee(address(_user)); // User tries to withdraw
