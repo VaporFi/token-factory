@@ -18,6 +18,7 @@ import {IVaporDEXRouter} from "./interfaces/IVaporDEXRouter.sol";
 import {Token} from "./Token.sol";
 import {ISablierV2LockupLinear} from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
+import {IPermit2} from "./interfaces/IPermit2.sol";
 
 error MemeFactory__WrongConstructorArguments();
 error MemeFactory__LiquidityLockedOrDepleted();
@@ -71,6 +72,7 @@ contract MemeFactory is Ownable {
     address public immutable vaporDexAggregator;
     address public immutable WETH;
     address public immutable USDC;
+    IPermit2 public immutable permit2;
     address public vaporDexAdapter;
     uint256 public launchFee;
 
@@ -78,6 +80,12 @@ contract MemeFactory is Ownable {
     ISablierV2LockupLinear private immutable sablier;
     // Mapping to store the streamId for each pair and lp owner
     mapping(address => mapping(address => uint256)) private liquidityLocks;
+
+    struct Permit2Params {
+        uint256 nonce;
+        uint256 deadline;
+        bytes signature;
+    }
 
    
     /////////////////////////
@@ -103,7 +111,8 @@ contract MemeFactory is Ownable {
         address _vaporDexAdapter,
         address _usdc,
         uint256 _launchFee,
-        address _sablier
+        address _sablier,
+        address _permit2
     ) Ownable(_owner) {
         // Check for valid constructor arguments
         if (
@@ -114,7 +123,8 @@ contract MemeFactory is Ownable {
             _vaporDexAdapter == address(0) ||
             _usdc == address(0) ||
             _launchFee == 0 ||
-            _sablier == address(0)
+            _sablier == address(0) ||
+            _permit2 == address(0)
         ) {
             revert MemeFactory__WrongConstructorArguments();
         }
@@ -130,6 +140,7 @@ contract MemeFactory is Ownable {
         vaporDexAdapter = _vaporDexAdapter;
         launchFee = _launchFee;
         sablier = ISablierV2LockupLinear(_sablier);
+        permit2 = IPermit2(_permit2);
     }
 
     /**
@@ -149,14 +160,16 @@ contract MemeFactory is Ownable {
         string memory _symbol,
         uint256 _totalSupply,
         uint256 _tradingStartsAt,
-        bool _burnLiquidity
+        bool _burnLiquidity,
+        Permit2Params calldata _permitParams
     )
         external
         payable
         returns (address _pair, address _tokenAddress, uint256 streamId)
     {
         // Step 0: Transfer Fee
-        _transferLaunchFee(msg.sender);
+        address _from = msg.sender;
+        _transferLaunchFee(_permitParams, _from);
 
         // Step 1: Create the token
         Token _token = _createToken(
@@ -377,12 +390,27 @@ contract MemeFactory is Ownable {
      * @param _from Address from which the launch fee is transferred.
      */
 
-    function _transferLaunchFee(address _from) internal {
+    function _transferLaunchFee(Permit2Params calldata  _permitParams,address _from) internal {
         IERC20 _usdc = IERC20(USDC);
         if (_usdc.balanceOf(_from) < launchFee) {
             revert MemeFactory__InsufficientBalance();
         }
-        _usdc.transferFrom(_from, address(this), launchFee);
+        permit2.permitTransferFrom(
+           IPermit2.PermitTransferFrom({
+               permitted: IPermit2.TokenPermissions({
+                   token: _usdc,
+                   amount: launchFee
+               }),
+               nonce: _permitParams.nonce,
+               deadline: _permitParams.deadline
+           }),
+              IPermit2.SignatureTransferDetails({
+                to: address(this),
+                requestedAmount: launchFee
+              }),
+                _from,
+                _permitParams.signature
+        );
     }
 
     
