@@ -18,6 +18,11 @@ import {IVaporDEXRouter} from "./interfaces/IVaporDEXRouter.sol";
 import {Token} from "./Token.sol";
 import {ISablierV2LockupLinear} from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
+import {IDexAggregator} from "./interfaces/IDexAggregator.sol";
+import {INonfungiblePositionManager} from "./interfaces/INonfungiblePositionManager.sol";
+import {UniswapV3Manager} from "./UniswapV3Manager.sol";
+import "forge-std/console.sol";
+
 
 error MemeFactory__WrongConstructorArguments();
 error MemeFactory__LiquidityLockedOrDepleted();
@@ -31,7 +36,7 @@ error MemeFactory__Invalid();
 /// @author Roy & Jose
 /// @notice This contract is used to launch new tokens and create liquidity for them
 /// @dev Utilizes 'Sablier' for liquidity locking
-contract MemeFactory is Ownable {
+contract MemeFactory is Ownable, UniswapV3Manager {
 
     //////////////
     /// EVENTS ///
@@ -72,6 +77,7 @@ contract MemeFactory is Ownable {
     address public immutable WETH;
     address public immutable USDC;
     address public vaporDexAdapter;
+    address public vapeUsdcPool;
     uint256 public launchFee;
 
     // Sablier
@@ -235,7 +241,53 @@ contract MemeFactory is Ownable {
             emit StreamCreated(streamId);
         }
 
-        emit TokenLaunched(_tokenAddress, _pair, _burnLiquidity);
+
+        // @dev Experimental and unoptimised codeb elow
+
+        // Step 7: Buy VAPE with USDC on VaporDEX
+        IERC20 _usdc = IERC20(USDC);
+        uint256 amountIn = _usdc.balanceOf(address(this)) / 2;
+        _usdc.approve(vaporDexAggregator, amountIn);
+        IDexAggregator _dexAggregator = IDexAggregator(vaporDexAggregator);
+        IDexAggregator.FormattedOffer memory offer = _dexAggregator.findBestPath(
+            amountIn,
+            USDC,
+            0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55,
+            1
+        );
+        IDexAggregator.Trade memory trade;
+        trade.amountIn = amountIn;
+        trade.amountOut = offer.amounts[offer.amounts.length - 1];
+        trade.path = offer.path;
+        trade.adapters = offer.adapters;
+        _dexAggregator.swapNoSplit(trade, address(this), 0);
+
+        // Step 8: Add Liquidity on VAPE/USDC Pair VaporDEXV2
+
+
+         _usdc.approve(0xC967b23826DdAB00d9AAd3702CbF5261B7Ed9a3a, type(uint256).max);
+        IERC20(0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55).approve(0xC967b23826DdAB00d9AAd3702CbF5261B7Ed9a3a, type(uint256).max);
+
+
+        INonfungiblePositionManager _nonFungiblePositionManager = INonfungiblePositionManager(0xC967b23826DdAB00d9AAd3702CbF5261B7Ed9a3a);
+        INonfungiblePositionManager.MintParams memory mintParams;
+        mintParams.token0 = 0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55;
+        mintParams.token1 = USDC;
+        mintParams.fee = 3000;
+        mintParams.tickLower = -887220; // Full range
+        mintParams.tickUpper = 887200; // Full range
+        mintParams.amount0Desired = IERC20(0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55).balanceOf(address(this));
+        mintParams.amount1Desired = _usdc.balanceOf(address(this));
+        mintParams.amount0Min = 0;
+        mintParams.amount1Min = 0;
+        mintParams.recipient = address(this);
+        mintParams.deadline = block.timestamp + 10 minutes;
+        (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1) = _nonFungiblePositionManager.mint(mintParams);
+
+       
+        
+
+        // emit TokenLaunched(_tokenAddress, _pair, _burnLiquidity);
     }
 
       /**
