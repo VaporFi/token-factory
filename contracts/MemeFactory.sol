@@ -1,12 +1,9 @@
-
 // ███╗░░░███╗███████╗███╗░░░███╗███████╗  ███████╗░█████╗░░█████╗░████████╗░█████╗░██████╗░██╗░░░██╗
 // ████╗░████║██╔════╝████╗░████║██╔════╝  ██╔════╝██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗╚██╗░██╔╝
 // ██╔████╔██║█████╗░░██╔████╔██║█████╗░░  █████╗░░███████║██║░░╚═╝░░░██║░░░██║░░██║██████╔╝░╚████╔╝░
 // ██║╚██╔╝██║██╔══╝░░██║╚██╔╝██║██╔══╝░░  ██╔══╝░░██╔══██║██║░░██╗░░░██║░░░██║░░██║██╔══██╗░░╚██╔╝░░
 // ██║░╚═╝░██║███████╗██║░╚═╝░██║███████╗  ██║░░░░░██║░░██║╚█████╔╝░░░██║░░░╚█████╔╝██║░░██║░░░██║░░░
 // ╚═╝░░░░░╚═╝╚══════╝╚═╝░░░░░╚═╝╚══════╝  ╚═╝░░░░░╚═╝░░╚═╝░╚════╝░░░░╚═╝░░░░╚════╝░╚═╝░░╚═╝░░░╚═╝░░░
-
-
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
@@ -23,7 +20,6 @@ import {INonfungiblePositionManager} from "./interfaces/INonfungiblePositionMana
 import {UniswapV3Manager} from "./UniswapV3Manager.sol";
 import "forge-std/console.sol";
 
-
 error MemeFactory__WrongConstructorArguments();
 error MemeFactory__LiquidityLockedOrDepleted();
 error MemeFactory__Unauthorized();
@@ -37,7 +33,6 @@ error MemeFactory__Invalid();
 /// @notice This contract is used to launch new tokens and create liquidity for them
 /// @dev Utilizes 'Sablier' for liquidity locking
 contract MemeFactory is Ownable, UniswapV3Manager {
-
     //////////////
     /// EVENTS ///
     //////////////
@@ -85,7 +80,6 @@ contract MemeFactory is Ownable, UniswapV3Manager {
     // Mapping to store the streamId for each pair and lp owner
     mapping(address => mapping(address => uint256)) private liquidityLocks;
 
-   
     /////////////////////////
     ////// CONSTRUCTOR /////
     ////////////////////////
@@ -241,7 +235,6 @@ contract MemeFactory is Ownable, UniswapV3Manager {
             emit StreamCreated(streamId);
         }
 
-
         // @dev Experimental and unoptimised codeb elow
 
         // Step 7: Buy VAPE with USDC on VaporDEX
@@ -249,12 +242,13 @@ contract MemeFactory is Ownable, UniswapV3Manager {
         uint256 amountIn = _usdc.balanceOf(address(this)) / 2;
         _usdc.approve(vaporDexAggregator, amountIn);
         IDexAggregator _dexAggregator = IDexAggregator(vaporDexAggregator);
-        IDexAggregator.FormattedOffer memory offer = _dexAggregator.findBestPath(
-            amountIn,
-            USDC,
-            0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55,
-            1
-        );
+        IDexAggregator.FormattedOffer memory offer = _dexAggregator
+            .findBestPath(
+                amountIn,
+                USDC,
+                0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55,
+                1
+            );
         IDexAggregator.Trade memory trade;
         trade.amountIn = amountIn;
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
@@ -264,33 +258,58 @@ contract MemeFactory is Ownable, UniswapV3Manager {
 
         // Step 8: Add Liquidity on VAPE/USDC Pair VaporDEXV2
 
+        _usdc.approve(
+            0xC967b23826DdAB00d9AAd3702CbF5261B7Ed9a3a,
+            type(uint256).max
+        );
+        IERC20(0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55).approve(
+            0xC967b23826DdAB00d9AAd3702CbF5261B7Ed9a3a,
+            type(uint256).max
+        );
 
-         _usdc.approve(0xC967b23826DdAB00d9AAd3702CbF5261B7Ed9a3a, type(uint256).max);
-        IERC20(0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55).approve(0xC967b23826DdAB00d9AAd3702CbF5261B7Ed9a3a, type(uint256).max);
-
-
-        INonfungiblePositionManager _nonFungiblePositionManager = INonfungiblePositionManager(0xC967b23826DdAB00d9AAd3702CbF5261B7Ed9a3a);
-        INonfungiblePositionManager.MintParams memory mintParams;
-        mintParams.token0 = 0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55;
-        mintParams.token1 = USDC;
-        mintParams.fee = 3000;
-        mintParams.tickLower = -887220; // Full range
-        mintParams.tickUpper = 887200; // Full range
-        mintParams.amount0Desired = IERC20(0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55).balanceOf(address(this));
-        mintParams.amount1Desired = _usdc.balanceOf(address(this));
-        mintParams.amount0Min = 0;
-        mintParams.amount1Min = 0;
-        mintParams.recipient = address(this);
-        mintParams.deadline = block.timestamp + 10 minutes;
-        (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1) = _nonFungiblePositionManager.mint(mintParams);
-
-       
-        
+        INonfungiblePositionManager _nonFungiblePositionManager = INonfungiblePositionManager(
+                0xC967b23826DdAB00d9AAd3702CbF5261B7Ed9a3a
+            );
+        INonfungiblePositionManager.MintParams
+            memory mintParams = INonfungiblePositionManager.MintParams({
+                token0: 0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55,
+                token1: USDC,
+                fee: 3000,
+                tickLower: -887220,
+                tickUpper: 887220,
+                amount0Desired: IERC20(
+                    0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55
+                ).balanceOf(address(this)),
+                amount1Desired: _usdc.balanceOf(address(this)),
+                amount0Min: 0,
+                amount1Min: 0,
+                recipient: address(this),
+                deadline: block.timestamp + 2 minutes
+            });
+        // mintParams.token0 = 0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55;
+        // mintParams.token1 = USDC;
+        // mintParams.fee = 3000;
+        // mintParams.tickLower = -887220; // Full range
+        // mintParams.tickUpper = 887200; // Full range
+        // mintParams.amount0Desired = IERC20(
+        //     0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55
+        // ).balanceOf(address(this));
+        // mintParams.amount1Desired = _usdc.balanceOf(address(this));
+        // mintParams.amount0Min = 0;
+        // mintParams.amount1Min = 0;
+        // mintParams.recipient = address(this);
+        // mintParams.deadline = block.timestamp + 10 minutes;
+        (
+            uint256 tokenId,
+            uint128 liquidity,
+            uint256 amount0,
+            uint256 amount1
+        ) = _nonFungiblePositionManager.mint(mintParams);
 
         // emit TokenLaunched(_tokenAddress, _pair, _burnLiquidity);
     }
 
-      /**
+    /**
      * @dev Unlocks liquidity tokens for the specified pair and recipient.
      * @param _pair Address of the token pair.
      * @param _receiver Address of the recipient of unlocked tokens.
@@ -298,7 +317,7 @@ contract MemeFactory is Ownable, UniswapV3Manager {
      */
     function unlockLiquidityTokens(address _pair, address _receiver) external {
         uint256 streamId = liquidityLocks[msg.sender][_pair];
-  
+
         if (streamId == 0) {
             revert MemeFactory__Unauthorized();
         }
@@ -315,7 +334,7 @@ contract MemeFactory is Ownable, UniswapV3Manager {
 
         emit LiquidityTokensUnlocked(_pair, _receiver);
     }
-    
+
     /**
      * @dev Transfers the locked liquidity to the specified recipient for the given pair.
      * @param _pair Address of the token pair.
@@ -323,7 +342,11 @@ contract MemeFactory is Ownable, UniswapV3Manager {
      */
     function transferLock(address _pair, address _to) external {
         uint256 streamId = liquidityLocks[msg.sender][_pair];
-        if (streamId == 0 || _to == address(0) || sablier.isTransferable(streamId) == false){
+        if (
+            streamId == 0 ||
+            _to == address(0) ||
+            sablier.isTransferable(streamId) == false
+        ) {
             revert MemeFactory__Unauthorized();
         }
 
@@ -335,11 +358,11 @@ contract MemeFactory is Ownable, UniswapV3Manager {
         emit LiquidityTransferred(_pair, _to);
     }
 
-     /**
+    /**
      * @dev Sets the launch fee for creating new tokens.
      * @param _launchFee New launch fee in USDC.
      */
-     
+
     function setLaunchFee(uint256 _launchFee) external onlyOwner {
         if (_launchFee == 0) {
             revert MemeFactory__Invalid();
@@ -367,7 +390,7 @@ contract MemeFactory is Ownable, UniswapV3Manager {
      */
 
     function withdrawFee(address _to) external onlyOwner {
-        if(_to == address(0)){
+        if (_to == address(0)) {
             revert MemeFactory__ZeroAddress();
         }
         IERC20 _usdc = IERC20(USDC);
@@ -382,14 +405,12 @@ contract MemeFactory is Ownable, UniswapV3Manager {
      * @return uint256 Stream ID for the liquidity lock.
      */
 
-    function getLiquidityLock(address _pair, address _owner)
-        external
-        view
-        returns (uint256)
-    {
+    function getLiquidityLock(
+        address _pair,
+        address _owner
+    ) external view returns (uint256) {
         return liquidityLocks[_owner][_pair];
     }
-
 
     /**
      * @dev Creates a new Token contract with specified parameters.
@@ -424,7 +445,7 @@ contract MemeFactory is Ownable, UniswapV3Manager {
         );
     }
 
-     /**
+    /**
      * @dev Transfers the launch fee in USDC from the sender.
      * @param _from Address from which the launch fee is transferred.
      */
@@ -436,6 +457,4 @@ contract MemeFactory is Ownable, UniswapV3Manager {
         }
         _usdc.transferFrom(_from, address(this), launchFee);
     }
-
-    
 }
