@@ -1,12 +1,9 @@
-
 // ███╗░░░███╗███████╗███╗░░░███╗███████╗  ███████╗░█████╗░░█████╗░████████╗░█████╗░██████╗░██╗░░░██╗
 // ████╗░████║██╔════╝████╗░████║██╔════╝  ██╔════╝██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗╚██╗░██╔╝
 // ██╔████╔██║█████╗░░██╔████╔██║█████╗░░  █████╗░░███████║██║░░╚═╝░░░██║░░░██║░░██║██████╔╝░╚████╔╝░
 // ██║╚██╔╝██║██╔══╝░░██║╚██╔╝██║██╔══╝░░  ██╔══╝░░██╔══██║██║░░██╗░░░██║░░░██║░░██║██╔══██╗░░╚██╔╝░░
 // ██║░╚═╝░██║███████╗██║░╚═╝░██║███████╗  ██║░░░░░██║░░██║╚█████╔╝░░░██║░░░╚█████╔╝██║░░██║░░░██║░░░
 // ╚═╝░░░░░╚═╝╚══════╝╚═╝░░░░░╚═╝╚══════╝  ╚═╝░░░░░╚═╝░░╚═╝░╚════╝░░░░╚═╝░░░░╚════╝░╚═╝░░╚═╝░░░╚═╝░░░
-
-
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
@@ -26,13 +23,13 @@ error MemeFactory__ZeroAddress();
 error MemeFactory__WrongLaunchArguments();
 error MemeFactory__InsufficientBalance();
 error MemeFactory__Invalid();
+error MemeFactory__TranferFailed(address);
 
 /// @title MemeFactory
 /// @author Roy & Jose
 /// @notice This contract is used to launch new tokens and create liquidity for them
 /// @dev Utilizes 'Sablier' for liquidity locking
 contract MemeFactory is Ownable {
-
     //////////////
     /// EVENTS ///
     //////////////
@@ -72,6 +69,7 @@ contract MemeFactory is Ownable {
     address public immutable WETH;
     address public immutable USDC;
     address public vaporDexAdapter;
+    address public teamMultisig;
     uint256 public launchFee;
 
     // Sablier
@@ -79,7 +77,6 @@ contract MemeFactory is Ownable {
     // Mapping to store the streamId for each pair and lp owner
     mapping(address => mapping(address => uint256)) private liquidityLocks;
 
-   
     /////////////////////////
     ////// CONSTRUCTOR /////
     ////////////////////////
@@ -101,6 +98,7 @@ contract MemeFactory is Ownable {
         address _stratosphereAddress,
         address _vaporDexAggregator,
         address _vaporDexAdapter,
+        address _teamMultisig,
         address _usdc,
         uint256 _launchFee,
         address _sablier
@@ -127,6 +125,7 @@ contract MemeFactory is Ownable {
         USDC = _usdc;
         stratosphere = _stratosphereAddress;
         vaporDexAggregator = _vaporDexAggregator;
+        teamMultisig = _teamMultisig;
         vaporDexAdapter = _vaporDexAdapter;
         launchFee = _launchFee;
         sablier = ISablierV2LockupLinear(_sablier);
@@ -238,22 +237,22 @@ contract MemeFactory is Ownable {
         emit TokenLaunched(_tokenAddress, _pair, _burnLiquidity);
     }
 
-      /**
+    /**
      * @dev Unlocks liquidity tokens for the specified pair and recipient.
      * @param _pair Address of the token pair.
      * @param _receiver Address of the recipient of unlocked tokens.
      * @notice It is recommended to direct the user to Sablier UI for better error handling.
      */
     function unlockLiquidityTokens(address _pair, address _receiver) external {
+        if (_receiver == address(0)) {
+            revert MemeFactory__ZeroAddress();
+        }
+
         uint256 streamId = liquidityLocks[msg.sender][_pair];
-  
         if (streamId == 0) {
             revert MemeFactory__Unauthorized();
         }
 
-        if (_receiver == address(0)) {
-            revert MemeFactory__ZeroAddress();
-        }
         uint256 withdrawableAmount = sablier.withdrawableAmountOf(streamId);
         if (withdrawableAmount == 0) {
             revert MemeFactory__LiquidityLockedOrDepleted();
@@ -263,7 +262,7 @@ contract MemeFactory is Ownable {
 
         emit LiquidityTokensUnlocked(_pair, _receiver);
     }
-    
+
     /**
      * @dev Transfers the locked liquidity to the specified recipient for the given pair.
      * @param _pair Address of the token pair.
@@ -271,23 +270,27 @@ contract MemeFactory is Ownable {
      */
     function transferLock(address _pair, address _to) external {
         uint256 streamId = liquidityLocks[msg.sender][_pair];
-        if (streamId == 0 || _to == address(0) || sablier.isTransferable(streamId) == false){
+        if (
+            streamId == 0 ||
+            _to == address(0) ||
+            sablier.isTransferable(streamId) == false
+        ) {
             revert MemeFactory__Unauthorized();
         }
 
-        sablier.transferFrom({from: msg.sender, to: _to, tokenId: streamId}); // Other reverts are handled by Sablier
+        liquidityLocks[_to][_pair] = streamId; /// @dev Safe to overwrite after transfer
+        liquidityLocks[msg.sender][_pair] = 0; /// @dev Safe to overwrite after transfer
 
-        liquidityLocks[_to][_pair] = streamId; // @dev Safe to overwrite after transfer
-        liquidityLocks[msg.sender][_pair] = 0; // @dev Safe to overwrite after transfer
+        sablier.transferFrom({from: msg.sender, to: _to, tokenId: streamId}); // Other reverts are handled by Sablier
 
         emit LiquidityTransferred(_pair, _to);
     }
 
-     /**
+    /**
      * @dev Sets the launch fee for creating new tokens.
      * @param _launchFee New launch fee in USDC.
      */
-     
+
     function setLaunchFee(uint256 _launchFee) external onlyOwner {
         if (_launchFee == 0) {
             revert MemeFactory__Invalid();
@@ -302,7 +305,10 @@ contract MemeFactory is Ownable {
      */
 
     function setVaporDEXAdapter(address _vaporDexAdapter) external onlyOwner {
-        if (_vaporDexAdapter == vaporDexAdapter) {
+        if (
+            _vaporDexAdapter == vaporDexAdapter ||
+            _vaporDexAdapter == address(0)
+        ) {
             revert MemeFactory__Invalid();
         }
         vaporDexAdapter = _vaporDexAdapter;
@@ -315,7 +321,7 @@ contract MemeFactory is Ownable {
      */
 
     function withdrawFee(address _to) external onlyOwner {
-        if(_to == address(0)){
+        if (_to == address(0)) {
             revert MemeFactory__ZeroAddress();
         }
         IERC20 _usdc = IERC20(USDC);
@@ -330,14 +336,12 @@ contract MemeFactory is Ownable {
      * @return uint256 Stream ID for the liquidity lock.
      */
 
-    function getLiquidityLock(address _pair, address _owner)
-        external
-        view
-        returns (uint256)
-    {
+    function getLiquidityLock(
+        address _pair,
+        address _owner
+    ) external view returns (uint256) {
         return liquidityLocks[_owner][_pair];
     }
-
 
     /**
      * @dev Creates a new Token contract with specified parameters.
@@ -372,7 +376,7 @@ contract MemeFactory is Ownable {
         );
     }
 
-     /**
+    /**
      * @dev Transfers the launch fee in USDC from the sender.
      * @param _from Address from which the launch fee is transferred.
      */
@@ -382,8 +386,9 @@ contract MemeFactory is Ownable {
         if (_usdc.balanceOf(_from) < launchFee) {
             revert MemeFactory__InsufficientBalance();
         }
-        _usdc.transferFrom(_from, address(this), launchFee);
+        bool isSuccess = _usdc.transferFrom(_from, teamMultisig, launchFee);
+        if (!isSuccess) {
+            revert MemeFactory__TranferFailed(_from);
+        }
     }
-
-    
 }
