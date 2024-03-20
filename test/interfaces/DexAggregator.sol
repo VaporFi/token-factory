@@ -2,7 +2,7 @@
 pragma solidity ^0.8.22;
 
 
-interface IDexAggregator {
+interface DexAggregator {
 
  struct FormattedOffer {
         uint256[] amounts;

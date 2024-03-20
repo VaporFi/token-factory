@@ -2,7 +2,7 @@
 pragma solidity ^0.8.22;
 
 import {MemeFactoryTest, IERC20, Test} from "./MemeFactory.t.sol";
-import {IDexAggregator} from "../contracts/interfaces/IDexAggregator.sol";
+import {DexAggregator} from "./interfaces/DexAggregator.sol";
 import "forge-std/console.sol";
 import {IStratosphere} from "../contracts/interfaces/IStratosphere.sol";
 import {Token__NonStratosphereNFTHolder, Token__TradingNotStarted, Token__ExceedsMaximumHolding} from "../contracts/Token.sol";
@@ -10,7 +10,7 @@ import {Token__NonStratosphereNFTHolder, Token__TradingNotStarted, Token__Exceed
 contract TokenTest is MemeFactoryTest {
     IERC20 public token;
     IERC20 public pair;
-    IDexAggregator public dexAggregator = IDexAggregator(_vaporDexAggregator);
+    DexAggregator public dexAggregator = DexAggregator(_vaporDexAggregator);
     IERC20 public WNATIVE = IERC20(0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7);
 
     function _setUp(bool _mintStrat) internal {
@@ -34,7 +34,7 @@ contract TokenTest is MemeFactoryTest {
         address tokenIn = address(token);
         address tokenOut = address(WNATIVE);
         uint256 maxSteps = 1;
-        IDexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
+        DexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
             amountIn,
             tokenIn,
             tokenOut,
@@ -59,13 +59,13 @@ contract TokenTest is MemeFactoryTest {
         address tokenIn = address(WNATIVE);
         address tokenOut = address(token);
         uint256 maxSteps = 1;
-        IDexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
+        DexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
             amountIn,
             tokenIn,
             tokenOut,
             maxSteps
         );
-        IDexAggregator.Trade memory trade;
+        DexAggregator.Trade memory trade;
         trade.amountIn = amountIn;
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
@@ -118,13 +118,13 @@ contract TokenTest is MemeFactoryTest {
         address tokenIn = address(WNATIVE);
         address tokenOut = address(token);
         uint256 maxSteps = 1;
-        IDexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
+        DexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
             amountIn,
             tokenIn,
             tokenOut,
             maxSteps
         );
-        IDexAggregator.Trade memory trade;
+        DexAggregator.Trade memory trade;
         trade.amountIn = amountIn;
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
@@ -152,13 +152,13 @@ contract TokenTest is MemeFactoryTest {
         address tokenIn = address(WNATIVE);
         address tokenOut = address(token);
         uint256 maxSteps = 1;
-        IDexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
+        DexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
             amountIn,
             tokenIn,
             tokenOut,
             maxSteps
         );
-        IDexAggregator.Trade memory trade;
+        DexAggregator.Trade memory trade;
         trade.amountIn = amountIn;
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
@@ -181,13 +181,13 @@ contract TokenTest is MemeFactoryTest {
         address tokenIn = address(WNATIVE);
         address tokenOut = address(token);
         uint256 maxSteps = 1;
-        IDexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
+        DexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
             amountIn,
             tokenIn,
             tokenOut,
             maxSteps
         );
-        IDexAggregator.Trade memory trade;
+        DexAggregator.Trade memory trade;
         trade.amountIn = amountIn;
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
@@ -210,13 +210,13 @@ contract TokenTest is MemeFactoryTest {
         address tokenIn = address(WNATIVE);
         address tokenOut = address(token);
         uint256 maxSteps = 1;
-        IDexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
+        DexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
             amountIn,
             tokenIn,
             tokenOut,
             maxSteps
         );
-        IDexAggregator.Trade memory trade;
+        DexAggregator.Trade memory trade;
         trade.amountIn = amountIn;
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
@@ -241,13 +241,13 @@ contract TokenTest is MemeFactoryTest {
         address tokenIn = address(WNATIVE);
         address tokenOut = address(token);
         uint256 maxSteps = 1;
-        IDexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
+        DexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
             amountIn,
             tokenIn,
             tokenOut,
             maxSteps
         );
-        IDexAggregator.Trade memory trade;
+        DexAggregator.Trade memory trade;
         trade.amountIn = amountIn;
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
@@ -277,13 +277,13 @@ contract TokenTest is MemeFactoryTest {
         vm.warp(block.timestamp + 3 days + 1 hours);
 
         vm.startPrank(_user);
-        IDexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
+        DexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(
             amountIn,
             tokenIn,
             tokenOut,
             maxSteps
         );
-        IDexAggregator.Trade memory trade;
+        DexAggregator.Trade memory trade;
         trade.amountIn = amountIn;
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
