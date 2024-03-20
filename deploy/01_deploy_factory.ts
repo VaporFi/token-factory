@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { addresses } from "../config";
-
+const launchFee = "250000000";
 const func: DeployFunction = async function ({
   getNamedAccounts,
   deployments,
@@ -18,13 +18,15 @@ const func: DeployFunction = async function ({
   await deploy("MemeFactory", {
     from: deployer,
     args: [
-      addresses.teamMultiSig[chainId],
-      addresses.vaporDexRouter[chainId],
-      addresses.stratosphereNFT[chainId],
-      [
-        addresses.vaporDexAggregatorRouter[chainId],
-        addresses.vaporDexAggregatorAdapter[chainId],
-      ],
+      addresses.teamMultiSig[chainId], //owner
+      addresses.vaporDexRouter[chainId], //router
+      addresses.stratosphereNFT[chainId], //strat
+      addresses.vaporDexAggregatorRouter[chainId], //aggregator
+      addresses.vaporDexAggregatorAdapter[chainId], //adapter
+      addresses.teamMultiSig[chainId], //multisig
+      addresses.usdc[chainId], //usdc
+      launchFee, // launch fee
+      //sablier
     ],
     log: true,
   });

@@ -1,10 +1,10 @@
-import "dotenv/config";
+// import "dotenv/config";
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-deploy";
 
-const deployerKey = process.env.DEPLOYER_KEY || "";
-const accounts = [deployerKey];
+// const deployerKey = process.env.DEPLOYER_KEY || "";
+// const accounts = [deployerKey];
 
 const config: HardhatUserConfig = {
   etherscan: {
@@ -49,12 +49,12 @@ const config: HardhatUserConfig = {
   },
   networks: {
     avalanche: {
-      accounts,
+      // accounts,
       chainId: 43114,
       url: "https://api.avax.network/ext/bc/C/rpc",
     },
     avalancheFuji: {
-      accounts,
+      // accounts,
       chainId: 43113,
       url: "https://api.avax-test.network/ext/bc/C/rpc",
     },

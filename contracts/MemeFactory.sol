@@ -24,6 +24,7 @@ error MemeFactory__WrongLaunchArguments();
 error MemeFactory__InsufficientBalance();
 error MemeFactory__Invalid();
 error MemeFactory__TranferFailed(address);
+error MemeFactory__NotEnoughLiquidity();
 
 /// @title MemeFactory
 /// @author Roy & Jose
@@ -55,6 +56,7 @@ contract MemeFactory is Ownable {
         address indexed _to
     );
     event LaunchFeeUpdated(uint256 _newFee);
+    event MinimumLiquidityETHUpdated(uint256 _newFee);
     event VaporDEXAdapterUpdated(address _newAdapter);
     event AccumulatedFeesWithdrawn(address _to, uint256 _amount);
 
@@ -71,6 +73,7 @@ contract MemeFactory is Ownable {
     address public vaporDexAdapter;
     address public teamMultisig;
     uint256 public launchFee;
+    uint256 public minLiquidityETH;
 
     // Sablier
     ISablierV2LockupLinear private immutable sablier;
@@ -101,6 +104,7 @@ contract MemeFactory is Ownable {
         address _teamMultisig,
         address _usdc,
         uint256 _launchFee,
+        uint256 _minLiquidityETH,
         address _sablier
     ) Ownable(_owner) {
         // Check for valid constructor arguments
@@ -112,7 +116,8 @@ contract MemeFactory is Ownable {
             _vaporDexAdapter == address(0) ||
             _usdc == address(0) ||
             _launchFee == 0 ||
-            _sablier == address(0)
+            _sablier == address(0) ||
+            _minLiquidityETH == 0
         ) {
             revert MemeFactory__WrongConstructorArguments();
         }
@@ -123,6 +128,7 @@ contract MemeFactory is Ownable {
         factory = _router.factory();
         WETH = _router.WETH();
         USDC = _usdc;
+        minLiquidityETH = _minLiquidityETH;
         stratosphere = _stratosphereAddress;
         vaporDexAggregator = _vaporDexAggregator;
         teamMultisig = _teamMultisig;
@@ -154,6 +160,10 @@ contract MemeFactory is Ownable {
         payable
         returns (address _pair, address _tokenAddress, uint256 streamId)
     {
+        uint256 value = msg.value;
+        if (value < minLiquidityETH) {
+            revert MemeFactory__NotEnoughLiquidity();
+        }
         // Step 0: Transfer Fee
         _transferLaunchFee(msg.sender);
 
@@ -176,11 +186,11 @@ contract MemeFactory is Ownable {
 
         // Step 2: Add Liquidity
         IVaporDEXRouter _router = IVaporDEXRouter(router);
-        _router.addLiquidityETH{value: msg.value}(
+        _router.addLiquidityETH{value: value}(
             _tokenAddress,
             _totalSupply,
             _totalSupply,
-            msg.value,
+            value,
             address(this),
             block.timestamp + 10 minutes
         );
@@ -284,6 +294,19 @@ contract MemeFactory is Ownable {
         sablier.transferFrom({from: msg.sender, to: _to, tokenId: streamId}); // Other reverts are handled by Sablier
 
         emit LiquidityTransferred(_pair, _to);
+    }
+
+    /**
+     * @dev Sets the minimum liquidity for creating new tokens.
+     * @param _liquidity New liquidity.
+     */
+
+    function setminimumLiquidityETH(uint256 _liquidity) external onlyOwner {
+        if (_liquidity == 0) {
+            revert MemeFactory__Invalid();
+        }
+        minLiquidityETH = _liquidity;
+        emit MinimumLiquidityETHUpdated(_liquidity);
     }
 
     /**
