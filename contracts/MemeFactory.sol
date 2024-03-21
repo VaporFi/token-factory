@@ -17,8 +17,7 @@ import {ISablierV2LockupLinear} from "@sablier/v2-core/src/interfaces/ISablierV2
 import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
 import {IDexAggregator} from "./interfaces/IDexAggregator.sol";
 import {INonfungiblePositionManager} from "./interfaces/INonfungiblePositionManager.sol";
-
-
+import "forge-std/Test.sol";
 
 error MemeFactory__WrongConstructorArguments();
 error MemeFactory__LiquidityLockedOrDepleted();
@@ -34,9 +33,7 @@ error MemeFactory__TranferFailed(address);
 /// @notice This contract is used to launch new tokens and create liquidity for them
 /// @dev Utilizes 'Sablier' for liquidity locking
 
-
 contract MemeFactory is Ownable {
-
     //////////////
     /// EVENTS ///
     //////////////
@@ -69,7 +66,6 @@ contract MemeFactory is Ownable {
     /// STORAGE ///
     ///////////////
 
-
     address private immutable factory;
     address private immutable router;
     address private immutable stratosphere;
@@ -81,7 +77,6 @@ contract MemeFactory is Ownable {
     address private vaporDexAdapter;
     address private teamMultisig;
     uint256 private launchFee;
-
 
     // Sablier
     ISablierV2LockupLinear private immutable sablier;
@@ -109,13 +104,12 @@ contract MemeFactory is Ownable {
         address _stratosphereAddress,
         address _vaporDexAggregator,
         address _vaporDexAdapter,
-        address _teamMultisig,
         address _usdc,
         address _vape,
         uint256 _launchFee,
         address _sablier,
         address _nonFungiblePositionManager,
-        address _teamMultisig 
+        address _teamMultisig
     ) Ownable(_owner) {
         // Check for valid constructor arguments
         if (
@@ -143,7 +137,9 @@ contract MemeFactory is Ownable {
         vaporDexAdapter = _vaporDexAdapter;
         launchFee = _launchFee;
         sablier = ISablierV2LockupLinear(_sablier);
-        nonFungiblePositionManager = INonfungiblePositionManager(_nonFungiblePositionManager);
+        nonFungiblePositionManager = INonfungiblePositionManager(
+            _nonFungiblePositionManager
+        );
         teamMultisig = _teamMultisig;
     }
 
@@ -250,7 +246,6 @@ contract MemeFactory is Ownable {
             emit StreamCreated(streamId);
         }
 
-
         // Step 7: Buy VAPE with USDC on VaporDEXAggregator
 
         _buyVapeWithUsdc(launchFee / 2); // 50% of the launch fee, Admin can change launchFee but this will always be 50% of the launch fee
@@ -258,7 +253,6 @@ contract MemeFactory is Ownable {
         // Step 8: Add Liquidity on VAPE/USDC Pair VaporDEXV2
 
         _addLiquidityVapeUsdc(); // Uses the balance of VAPE and USDC in the contract
-    
 
         emit TokenLaunched(_tokenAddress, _pair, _burnLiquidity);
     }
@@ -341,7 +335,7 @@ contract MemeFactory is Ownable {
         emit VaporDEXAdapterUpdated(_vaporDexAdapter);
     }
 
-  /**
+    /**
      * @dev Withdraws any remaining USDC fees to the specified address.
      * @param _to Address to which the remaining fees are withdrawn.
      */
@@ -354,9 +348,8 @@ contract MemeFactory is Ownable {
         _usdc.transfer(_to, _usdc.balanceOf(address(this)));
         emit AccumulatedFeesWithdrawn(_to, _usdc.balanceOf(address(this)));
     }
-    
-    
-    
+
+    /**
      * @dev Creates a new Token contract with specified parameters.
      * @param name Name of the token.
      * @param symbol Symbol of the token.
@@ -399,7 +392,8 @@ contract MemeFactory is Ownable {
         if (_usdc.balanceOf(_from) < launchFee) {
             revert MemeFactory__InsufficientBalance();
         }
-        bool isSuccess = _usdc.transferFrom(_from, teamMultisig, launchFee);
+        // Transfer half of the launch fee to teamMultisig
+        bool isSuccess = _usdc.transferFrom(_from, address(this), launchFee);
         if (!isSuccess) {
             revert MemeFactory__TranferFailed(_from);
         }
@@ -412,7 +406,7 @@ contract MemeFactory is Ownable {
 
     function _buyVapeWithUsdc(uint256 amountIn) internal {
         USDC.approve(address(vaporDexAggregator), amountIn);
-   
+
         IDexAggregator.FormattedOffer memory offer = vaporDexAggregator
             .findBestPath(
                 amountIn,
@@ -462,7 +456,6 @@ contract MemeFactory is Ownable {
         // Q: What checks should be done with the return values?
     }
 
-
     function _percentage(
         uint256 _number,
         uint256 _percentageBasisPoints // Example: 1% is 100
@@ -470,9 +463,7 @@ contract MemeFactory is Ownable {
         return (_number * _percentageBasisPoints) / 10_000;
     }
 
-
     // Getters
-
 
     /**
      * @dev Returns the launch fee.
@@ -583,7 +574,4 @@ contract MemeFactory is Ownable {
     ) external view returns (uint256) {
         return liquidityLocks[_owner][_pair];
     }
-
-
-
 }
