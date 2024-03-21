@@ -25,6 +25,7 @@ error MemeFactory__InsufficientBalance();
 error MemeFactory__Invalid();
 error MemeFactory__TranferFailed(address);
 error MemeFactory__NotEnoughLiquidity();
+error MemeFactory__MinimumLockDuration();
 
 /// @title MemeFactory
 /// @author Roy & Jose
@@ -74,6 +75,7 @@ contract MemeFactory is Ownable {
     address public teamMultisig;
     uint256 public launchFee;
     uint256 public minLiquidityETH;
+    uint40 public minLockDuration;
 
     // Sablier
     ISablierV2LockupLinear private immutable sablier;
@@ -105,6 +107,7 @@ contract MemeFactory is Ownable {
         address _usdc,
         uint256 _launchFee,
         uint256 _minLiquidityETH,
+        uint40 _minLockDuration,
         address _sablier
     ) Ownable(_owner) {
         // Check for valid constructor arguments
@@ -117,7 +120,8 @@ contract MemeFactory is Ownable {
             _usdc == address(0) ||
             _launchFee == 0 ||
             _sablier == address(0) ||
-            _minLiquidityETH == 0
+            _minLiquidityETH == 0 ||
+            _minLockDuration == 0
         ) {
             revert MemeFactory__WrongConstructorArguments();
         }
@@ -129,6 +133,7 @@ contract MemeFactory is Ownable {
         WETH = _router.WETH();
         USDC = _usdc;
         minLiquidityETH = _minLiquidityETH;
+        minLockDuration = _minLockDuration;
         stratosphere = _stratosphereAddress;
         vaporDexAggregator = _vaporDexAggregator;
         teamMultisig = _teamMultisig;
@@ -143,6 +148,7 @@ contract MemeFactory is Ownable {
      * @param _symbol Symbol of the token.
      * @param _totalSupply Total supply of the token.
      * @param _tradingStartsAt Timestamp when trading starts for the token.
+     * @param lockDuration Number of days to lock liquidity for.
      * @param _burnLiquidity Flag indicating whether to burn liquidity or lock it.
      * @return _pair Address of the created token pair.
      * @return _tokenAddress Address of the launched token.
@@ -154,6 +160,7 @@ contract MemeFactory is Ownable {
         string memory _symbol,
         uint256 _totalSupply,
         uint256 _tradingStartsAt,
+        uint40 lockDuration,
         bool _burnLiquidity
     )
         external
@@ -217,6 +224,9 @@ contract MemeFactory is Ownable {
                 _lpToken.balanceOf(address(this))
             );
         } else {
+            if (lockDuration < minLockDuration) {
+                revert MemeFactory__MinimumLockDuration();
+            }
             _lpToken.approve(
                 address(sablier),
                 _lpToken.balanceOf(address(this))
@@ -233,8 +243,8 @@ contract MemeFactory is Ownable {
             params.cancelable = false; // Whether the stream will be cancelable or not
             params.transferable = true; // Whether the stream will be transferrable or not
             params.durations = LockupLinear.Durations({
-                cliff: 365 days - 1 seconds, // Assets will be unlocked only after the cliff period
-                total: 365 days
+                cliff: lockDuration * 1 days - 1 seconds, // Assets will be unlocked only after the cliff period
+                total: lockDuration * 1 days
             });
 
             // Create the stream

@@ -27,6 +27,7 @@ contract MemeFactoryTest is Test {
     address _roy = makeAddr("roy");
     uint256 minimumLiquidity = 10 ** 3; // https://github.com/VaporFi/vapordex-contracts/blob/staging/contracts/VaporDEX/VaporDEXPair.sol#L21
     uint256 minimumLiquidityETH = 10 ether; // to create token
+    uint40 minlockDuration = 90; // 3 months
 
     function setUp() public {
         vm.createSelectFork("https://api.avax.network/ext/bc/C/rpc");
@@ -50,6 +51,7 @@ contract MemeFactoryTest is Test {
             address(_usdc),
             launchFee,
             minimumLiquidityETH,
+            minlockDuration,
             address(sablier)
         );
         vm.stopPrank();
@@ -338,6 +340,7 @@ contract MemeFactoryTest is Test {
             "TEST",
             1_000_000 ether,
             _releaseTime,
+            minlockDuration + 1,
             lpBurn
         );
 
