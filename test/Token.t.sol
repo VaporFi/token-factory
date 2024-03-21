@@ -17,7 +17,8 @@ contract TokenTest is MemeFactoryTest {
         (address _pair, address tokenAddress, ) = _launch(
             block.timestamp + 2 days,
             false,
-            minimumLiquidityETH
+            minimumLiquidityETH,
+            minlockDuration + 1
         );
         token = IERC20(tokenAddress);
         pair = IERC20(_pair);
