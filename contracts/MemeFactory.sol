@@ -27,12 +27,16 @@ error MemeFactory__ZeroAddress();
 error MemeFactory__WrongLaunchArguments();
 error MemeFactory__InsufficientBalance();
 error MemeFactory__Invalid();
+error MemeFactory__TranferFailed(address);
 
 /// @title MemeFactory
 /// @author Roy & Jose
 /// @notice This contract is used to launch new tokens and create liquidity for them
 /// @dev Utilizes 'Sablier' for liquidity locking
-contract MemeFactory is Ownable{
+
+
+contract MemeFactory is Ownable {
+
     //////////////
     /// EVENTS ///
     //////////////
@@ -65,6 +69,7 @@ contract MemeFactory is Ownable{
     /// STORAGE ///
     ///////////////
 
+
     address private immutable factory;
     address private immutable router;
     address private immutable stratosphere;
@@ -76,6 +81,7 @@ contract MemeFactory is Ownable{
     address private vaporDexAdapter;
     address private teamMultisig;
     uint256 private launchFee;
+
 
     // Sablier
     ISablierV2LockupLinear private immutable sablier;
@@ -103,6 +109,7 @@ contract MemeFactory is Ownable{
         address _stratosphereAddress,
         address _vaporDexAggregator,
         address _vaporDexAdapter,
+        address _teamMultisig,
         address _usdc,
         address _vape,
         uint256 _launchFee,
@@ -263,15 +270,15 @@ contract MemeFactory is Ownable{
      * @notice It is recommended to direct the user to Sablier UI for better error handling.
      */
     function unlockLiquidityTokens(address _pair, address _receiver) external {
+        if (_receiver == address(0)) {
+            revert MemeFactory__ZeroAddress();
+        }
         uint256 streamId = liquidityLocks[msg.sender][_pair];
 
         if (streamId == 0) {
             revert MemeFactory__Unauthorized();
         }
 
-        if (_receiver == address(0)) {
-            revert MemeFactory__ZeroAddress();
-        }
         uint256 withdrawableAmount = sablier.withdrawableAmountOf(streamId);
         if (withdrawableAmount == 0) {
             revert MemeFactory__LiquidityLockedOrDepleted();
@@ -297,7 +304,7 @@ contract MemeFactory is Ownable{
             revert MemeFactory__Unauthorized();
         }
 
-        liquidityLocks[_to][_pair] = streamId; 
+        liquidityLocks[_to][_pair] = streamId;
         liquidityLocks[msg.sender][_pair] = 0;
 
         sablier.transferFrom({from: msg.sender, to: _to, tokenId: streamId}); // Other reverts are handled by Sablier
@@ -324,14 +331,32 @@ contract MemeFactory is Ownable{
      */
 
     function setVaporDEXAdapter(address _vaporDexAdapter) external onlyOwner {
-        if (_vaporDexAdapter == vaporDexAdapter) {
+        if (
+            _vaporDexAdapter == vaporDexAdapter ||
+            _vaporDexAdapter == address(0)
+        ) {
             revert MemeFactory__Invalid();
         }
         vaporDexAdapter = _vaporDexAdapter;
         emit VaporDEXAdapterUpdated(_vaporDexAdapter);
     }
 
-    /**
+  /**
+     * @dev Withdraws any remaining USDC fees to the specified address.
+     * @param _to Address to which the remaining fees are withdrawn.
+     */
+
+    function withdrawFee(address _to) external onlyOwner {
+        if (_to == address(0)) {
+            revert MemeFactory__ZeroAddress();
+        }
+        IERC20 _usdc = IERC20(USDC);
+        _usdc.transfer(_to, _usdc.balanceOf(address(this)));
+        emit AccumulatedFeesWithdrawn(_to, _usdc.balanceOf(address(this)));
+    }
+    
+    
+    
      * @dev Creates a new Token contract with specified parameters.
      * @param name Name of the token.
      * @param symbol Symbol of the token.
@@ -374,7 +399,10 @@ contract MemeFactory is Ownable{
         if (_usdc.balanceOf(_from) < launchFee) {
             revert MemeFactory__InsufficientBalance();
         }
-        _usdc.transferFrom(_from, address(this), launchFee);
+        bool isSuccess = _usdc.transferFrom(_from, teamMultisig, launchFee);
+        if (!isSuccess) {
+            revert MemeFactory__TranferFailed(_from);
+        }
     }
 
     /**
@@ -555,6 +583,7 @@ contract MemeFactory is Ownable{
     ) external view returns (uint256) {
         return liquidityLocks[_owner][_pair];
     }
+
 
 
 }
