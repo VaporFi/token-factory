@@ -391,7 +391,6 @@ contract MemeFactory is Ownable {
         if (_usdc.balanceOf(_from) < launchFee) {
             revert MemeFactory__InsufficientBalance();
         }
-        // Transfer half of the launch fee to teamMultisig
         bool isSuccess = _usdc.transferFrom(_from, address(this), launchFee);
         if (!isSuccess) {
             revert MemeFactory__TranferFailed(_from);
