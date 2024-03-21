@@ -58,6 +58,7 @@ contract MemeFactory is Ownable {
     );
     event LaunchFeeUpdated(uint256 _newFee);
     event MinimumLiquidityETHUpdated(uint256 _newFee);
+    event MinimumLockDurationUpdated(uint40 _newFee);
     event VaporDEXAdapterUpdated(address _newAdapter);
     event AccumulatedFeesWithdrawn(address _to, uint256 _amount);
 
@@ -311,12 +312,25 @@ contract MemeFactory is Ownable {
      * @param _liquidity New liquidity.
      */
 
-    function setminimumLiquidityETH(uint256 _liquidity) external onlyOwner {
+    function setMinimumLiquidityETH(uint256 _liquidity) external onlyOwner {
         if (_liquidity == 0) {
             revert MemeFactory__Invalid();
         }
         minLiquidityETH = _liquidity;
         emit MinimumLiquidityETHUpdated(_liquidity);
+    }
+
+    /**
+     * @dev Sets the minimum liquidity for creating new tokens.
+     * @param _lockDuration New lock duration in days.
+     */
+
+    function setMinLockDuration(uint40 _lockDuration) external onlyOwner {
+        if (_lockDuration == 0) {
+            revert MemeFactory__Invalid();
+        }
+        minLockDuration = _lockDuration;
+        emit MinimumLockDurationUpdated(_lockDuration);
     }
 
     /**

@@ -77,7 +77,14 @@ contract MemeFactoryTest is Test {
     function test_Revert_SetMinimumLiquidityETH() public {
         vm.startPrank(_user);
         vm.expectRevert();
-        memeFactory.setminimumLiquidityETH(3 ether);
+        memeFactory.setMinimumLiquidityETH(3 ether);
+        vm.stopPrank();
+    }
+
+    function test_Revert_SetMinimumLockDuration() public {
+        vm.startPrank(_user);
+        vm.expectRevert();
+        memeFactory.setMinLockDuration(30);
         vm.stopPrank();
     }
 
