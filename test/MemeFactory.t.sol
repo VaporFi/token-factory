@@ -60,7 +60,7 @@ contract MemeFactoryTest is Test {
     function test_MinimumLiquidityETH() public {
         vm.startPrank(_user);
 
-        _launch(block.timestamp + 2 days, true, 11 ether);
+        _launch(block.timestamp + 2 days, true, 11 ether, minlockDuration + 1);
 
         vm.stopPrank();
     }
@@ -69,7 +69,7 @@ contract MemeFactoryTest is Test {
         vm.startPrank(_user);
 
         vm.expectRevert();
-        _launch(block.timestamp + 2 days, true, 9 ether);
+        _launch(block.timestamp + 2 days, true, 9 ether, minlockDuration + 1);
 
         vm.stopPrank();
     }
@@ -86,7 +86,8 @@ contract MemeFactoryTest is Test {
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             true,
-            minimumLiquidityETH
+            minimumLiquidityETH,
+            minlockDuration + 1
         );
 
         // Pair and Token Checks
@@ -101,12 +102,26 @@ contract MemeFactoryTest is Test {
         vm.stopPrank();
     }
 
+    function test_Revert_LaunchWithLPLock() public {
+        vm.startPrank(_user);
+        vm.expectRevert();
+        _launch(
+            block.timestamp + 2 days,
+            false,
+            minimumLiquidityETH,
+            minlockDuration - 1
+        );
+
+        vm.stopPrank();
+    }
+
     function test_LaunchWithLPLock() public {
         vm.startPrank(_user);
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             false,
-            minimumLiquidityETH
+            minimumLiquidityETH,
+            minlockDuration + 1
         );
 
         // Pair and Token Checks
@@ -134,7 +149,8 @@ contract MemeFactoryTest is Test {
         (address _pair, , uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             false,
-            minimumLiquidityETH
+            minimumLiquidityETH,
+            minlockDuration + 1
         );
 
         // Before Warp
@@ -170,7 +186,8 @@ contract MemeFactoryTest is Test {
         (address _pair, , uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             false,
-            minimumLiquidityETH
+            minimumLiquidityETH,
+            minlockDuration + 1
         );
 
         LockupLinear.Stream memory stream = sablier.getStream(_streamId);
@@ -197,7 +214,8 @@ contract MemeFactoryTest is Test {
         (address _pair, , uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             false,
-            minimumLiquidityETH
+            minimumLiquidityETH,
+            minlockDuration + 1
         );
 
         vm.warp(block.timestamp + 365 days);
@@ -232,7 +250,8 @@ contract MemeFactoryTest is Test {
             (, , uint256 _streamId) = _launch(
                 block.timestamp + 2 days,
                 i % 2 == 0 ? true : false,
-                minimumLiquidityETH
+                minimumLiquidityETH,
+                minlockDuration + 1
             );
             if (i % 2 == 0) {
                 assertTrue(_streamId == 0);
@@ -268,7 +287,8 @@ contract MemeFactoryTest is Test {
             (, , uint256 _streamId) = _launch(
                 block.timestamp + 2 days,
                 i % 2 == 0 ? true : false,
-                minimumLiquidityETH
+                minimumLiquidityETH,
+                minlockDuration + 1
             );
             if (i % 2 == 0) {
                 assertTrue(_streamId == 0);
@@ -305,7 +325,12 @@ contract MemeFactoryTest is Test {
 
     function test_Revert_WithdrawFee_NotOwner() public {
         vm.startPrank(_user);
-        _launch(block.timestamp + 2 days, true, minimumLiquidityETH);
+        _launch(
+            block.timestamp + 2 days,
+            true,
+            minimumLiquidityETH,
+            minlockDuration + 1
+        );
         assertEq(_usdc.balanceOf(address(memeFactory)), launchFee);
         vm.expectRevert();
         memeFactory.withdrawFee(address(_user)); // User tries to withdraw
@@ -329,7 +354,8 @@ contract MemeFactoryTest is Test {
     function _launch(
         uint256 _releaseTime,
         bool lpBurn,
-        uint256 value
+        uint256 value,
+        uint40 lockDuration
     ) internal returns (address pair, address tokenAddress, uint256 streamId) {
         uint256 launchFeeContract = memeFactory.launchFee();
         _usdc.approve(address(memeFactory), launchFeeContract);
@@ -340,7 +366,7 @@ contract MemeFactoryTest is Test {
             "TEST",
             1_000_000 ether,
             _releaseTime,
-            minlockDuration + 1,
+            lockDuration,
             lpBurn
         );
 
