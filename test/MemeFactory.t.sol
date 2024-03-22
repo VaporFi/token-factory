@@ -13,7 +13,7 @@ import {IUniswapV3PoolState} from "./interfaces/IUniswapV3PoolState.sol";
 contract MemeFactoryTest is Test {
     MemeFactory memeFactory;
     address _owner = makeAddr("owner");
-    address teamMultisig = makeAddr("msig");
+    address _teamMultiSig = makeAddr("teamMultiSig");
     address _router = 0x19C0FC4562A4b76F27f86c676eF5a7e38D12a20d;
     address _stratosphere = 0x08e287adCf9BF6773a87e1a278aa9042BEF44b60;
     address _vaporDexAggregator = 0x55477d8537ede381784b448876AfAa98aa450E63;
@@ -58,7 +58,7 @@ contract MemeFactoryTest is Test {
             minlockDuration,
             address(sablier),
             _liquidityPositionManager,
-            teamMultisig
+            address(_teamMultiSig)
         );
         vm.stopPrank();
     }

@@ -490,12 +490,7 @@ contract MemeFactory is Ownable {
                 recipient: teamMultisig,
                 deadline: block.timestamp + 2 minutes
             });
-        (
-            uint256 tokenId,
-            uint128 liquidity,
-            uint256 amount0,
-            uint256 amount1
-        ) = nonFungiblePositionManager.mint(mintParams);
+        nonFungiblePositionManager.mint(mintParams);
 
         // Q: What checks should be done with the return values?
     }
