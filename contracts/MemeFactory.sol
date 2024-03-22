@@ -15,6 +15,8 @@ import {IVaporDEXRouter} from "./interfaces/IVaporDEXRouter.sol";
 import {Token} from "./Token.sol";
 import {ISablierV2LockupLinear} from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
+import {IDexAggregator} from "./interfaces/IDexAggregator.sol";
+import {INonfungiblePositionManager} from "./interfaces/INonfungiblePositionManager.sol";
 
 error MemeFactory__WrongConstructorArguments();
 error MemeFactory__LiquidityLockedOrDepleted();
@@ -31,6 +33,7 @@ error MemeFactory__MinimumLockDuration();
 /// @author Roy & Jose
 /// @notice This contract is used to launch new tokens and create liquidity for them
 /// @dev Utilizes 'Sablier' for liquidity locking
+
 contract MemeFactory is Ownable {
     //////////////
     /// EVENTS ///
@@ -70,8 +73,10 @@ contract MemeFactory is Ownable {
     address public immutable router;
     address public immutable stratosphere;
     address public immutable vaporDexAggregator;
+    INonfungiblePositionManager private immutable nonFungiblePositionManager;
     address public immutable WETH;
     address public immutable USDC;
+    IERC20 private immutable VAPE;
     address public vaporDexAdapter;
     address public teamMultisig;
     uint256 public launchFee;
@@ -104,12 +109,13 @@ contract MemeFactory is Ownable {
         address _stratosphereAddress,
         address _vaporDexAggregator,
         address _vaporDexAdapter,
-        address _teamMultisig,
         address _usdc,
         uint256 _launchFee,
         uint256 _minLiquidityETH,
         uint40 _minLockDuration,
-        address _sablier
+        address _sablier,
+        address _nonFungiblePositionManager,
+        address _teamMultisig
     ) Ownable(_owner) {
         // Check for valid constructor arguments
         if (
@@ -136,11 +142,14 @@ contract MemeFactory is Ownable {
         minLiquidityETH = _minLiquidityETH;
         minLockDuration = _minLockDuration;
         stratosphere = _stratosphereAddress;
-        vaporDexAggregator = _vaporDexAggregator;
-        teamMultisig = _teamMultisig;
+        vaporDexAggregator = IDexAggregator(_vaporDexAggregator);
         vaporDexAdapter = _vaporDexAdapter;
         launchFee = _launchFee;
         sablier = ISablierV2LockupLinear(_sablier);
+        nonFungiblePositionManager = INonfungiblePositionManager(
+            _nonFungiblePositionManager
+        );
+        teamMultisig = _teamMultisig;
     }
 
     /**
@@ -255,6 +264,14 @@ contract MemeFactory is Ownable {
             emit StreamCreated(streamId);
         }
 
+        // Step 7: Buy VAPE with USDC on VaporDEXAggregator
+
+        _buyVapeWithUsdc(launchFee / 2); // 50% of the launch fee, Admin can change launchFee but this will always be 50% of the launch fee
+
+        // Step 8: Add Liquidity on VAPE/USDC Pair VaporDEXV2
+
+        _addLiquidityVapeUsdc(); // Uses the balance of VAPE and USDC in the contract
+
         emit TokenLaunched(_tokenAddress, _pair, _burnLiquidity);
     }
 
@@ -268,8 +285,8 @@ contract MemeFactory is Ownable {
         if (_receiver == address(0)) {
             revert MemeFactory__ZeroAddress();
         }
-
         uint256 streamId = liquidityLocks[msg.sender][_pair];
+
         if (streamId == 0) {
             revert MemeFactory__Unauthorized();
         }
@@ -299,8 +316,8 @@ contract MemeFactory is Ownable {
             revert MemeFactory__Unauthorized();
         }
 
-        liquidityLocks[_to][_pair] = streamId; /// @dev Safe to overwrite after transfer
-        liquidityLocks[msg.sender][_pair] = 0; /// @dev Safe to overwrite after transfer
+        liquidityLocks[_to][_pair] = streamId;
+        liquidityLocks[msg.sender][_pair] = 0;
 
         sablier.transferFrom({from: msg.sender, to: _to, tokenId: streamId}); // Other reverts are handled by Sablier
 
@@ -377,20 +394,6 @@ contract MemeFactory is Ownable {
     }
 
     /**
-     * @dev Returns the liquidity lock for the specified pair and owner.
-     * @param _pair Address of the token pair.
-     * @param _owner Address of the owner.
-     * @return uint256 Stream ID for the liquidity lock.
-     */
-
-    function getLiquidityLock(
-        address _pair,
-        address _owner
-    ) external view returns (uint256) {
-        return liquidityLocks[_owner][_pair];
-    }
-
-    /**
      * @dev Creates a new Token contract with specified parameters.
      * @param name Name of the token.
      * @param symbol Symbol of the token.
@@ -433,9 +436,185 @@ contract MemeFactory is Ownable {
         if (_usdc.balanceOf(_from) < launchFee) {
             revert MemeFactory__InsufficientBalance();
         }
-        bool isSuccess = _usdc.transferFrom(_from, teamMultisig, launchFee);
+        bool isSuccess = _usdc.transferFrom(_from, address(this), launchFee);
         if (!isSuccess) {
             revert MemeFactory__TranferFailed(_from);
         }
+    }
+
+    /**
+     * @dev Buys VAPE with USDC on VaporDEXAggregator
+     * @param amountIn Amount of USDC to be used for buying VAPE.
+     */
+
+    function _buyVapeWithUsdc(uint256 amountIn) internal {
+        USDC.approve(address(vaporDexAggregator), amountIn);
+
+        IDexAggregator.FormattedOffer memory offer = vaporDexAggregator
+            .findBestPath(
+                amountIn,
+                address(USDC),
+                address(VAPE),
+                1 // can be changed to 3
+            );
+        IDexAggregator.Trade memory trade;
+        trade.amountIn = amountIn;
+        trade.amountOut = offer.amounts[offer.amounts.length - 1];
+        trade.path = offer.path;
+        trade.adapters = offer.adapters;
+        vaporDexAggregator.swapNoSplit(trade, address(this), 0);
+    }
+
+    /**
+     * @dev Adds liquidity for VAPE/USDC pair on VaporDEXV2.
+     * @notice Uses the balance of VAPE and USDC in the contract.
+     */
+
+    function _addLiquidityVapeUsdc() internal {
+        uint256 amountInUSDC = USDC.balanceOf(address(this));
+        uint256 amountInVAPE = VAPE.balanceOf(address(this));
+        USDC.approve(address(nonFungiblePositionManager), amountInUSDC);
+        VAPE.approve(address(nonFungiblePositionManager), amountInVAPE);
+        INonfungiblePositionManager.MintParams memory mintParams = INonfungiblePositionManager
+            .MintParams({
+                token0: address(VAPE),
+                token1: address(USDC),
+                fee: 3000,
+                tickLower: -887220, // full range
+                tickUpper: 887220, // full range
+                amount0Desired: amountInVAPE,
+                amount1Desired: amountInUSDC,
+                amount0Min: amountInVAPE - _percentage(amountInVAPE, 200), // 2% slippage
+                amount1Min: amountInUSDC - _percentage(amountInUSDC, 200), // 2% slippage
+                recipient: teamMultisig,
+                deadline: block.timestamp + 2 minutes
+            });
+        (
+            uint256 tokenId,
+            uint128 liquidity,
+            uint256 amount0,
+            uint256 amount1
+        ) = nonFungiblePositionManager.mint(mintParams);
+
+        // Q: What checks should be done with the return values?
+    }
+
+    function _percentage(
+        uint256 _number,
+        uint256 _percentageBasisPoints // Example: 1% is 100
+    ) internal pure returns (uint256) {
+        return (_number * _percentageBasisPoints) / 10_000;
+    }
+
+    // Getters
+
+    /**
+     * @dev Returns the launch fee.
+     * @return uint256 The launch fee.
+     */
+    function getLaunchFee() external view returns (uint256) {
+        return launchFee;
+    }
+
+    /**
+     * @dev Returns the address of the VaporDEX adapter.
+     * @return address The address of the VaporDEX adapter.
+     */
+    function getVaporDexAdapter() external view returns (address) {
+        return vaporDexAdapter;
+    }
+
+    /**
+     * @dev Returns the address of the VaporDEX router.
+     * @return address The address of the VaporDEX router.
+     */
+    function getVaporDEXRouter() external view returns (address) {
+        return router;
+    }
+
+    /**
+     * @dev Returns the address of the VaporDEX factory.
+     * @return address The address of the VaporDEX factory.
+     */
+    function getVaporDEXFactory() external view returns (address) {
+        return factory;
+    }
+
+    /**
+     * @dev Returns the address of the Stratosphere contract.
+     * @return address The address of the Stratosphere contract.
+     */
+    function getStratosphere() external view returns (address) {
+        return stratosphere;
+    }
+
+    /**
+     * @dev Returns the address of the VaporDEX aggregator.
+     * @return address The address of the VaporDEX aggregator.
+     */
+    function getVaporDexAggregator() external view returns (address) {
+        return address(vaporDexAggregator);
+    }
+
+    /**
+     * @dev Returns the address of the USDC token.
+     * @return address The address of the USDC token.
+     */
+    function getUSDC() external view returns (address) {
+        return address(USDC);
+    }
+
+    /**
+     * @dev Returns the address of the VAPE token.
+     * @return address The address of the VAPE token.
+     */
+    function getVAPE() external view returns (address) {
+        return address(VAPE);
+    }
+
+    /**
+     * @dev Returns the address of the VaporDEX adapter.
+     * @return address The address of the VaporDEX adapter.
+     */
+    function getVaporDEXAdapter() external view returns (address) {
+        return vaporDexAdapter;
+    }
+
+    /**
+     * @dev Returns the address of the team multisig wallet.
+     * @return address The address of the team multisig wallet.
+     */
+    function getTeamMultisig() external view returns (address) {
+        return teamMultisig;
+    }
+
+    /**
+     * @dev Returns the address of the Sablier contract.
+     * @return address The address of the Sablier contract.
+     */
+    function getSablier() external view returns (address) {
+        return address(sablier);
+    }
+
+    /**
+     * @dev Returns the address of the NonFungiblePositionManager contract.
+     * @return address The address of the NonFungiblePositionManager contract.
+     */
+    function getNonFungiblePositionManager() external view returns (address) {
+        return address(nonFungiblePositionManager);
+    }
+
+    /**
+     * @dev Returns the liquidity lock for the specified pair and owner.
+     * @param _pair Address of the token pair.
+     * @param _owner Address of the owner.
+     * @return uint256 Stream ID for the liquidity lock.
+     */
+
+    function getLiquidityLock(
+        address _pair,
+        address _owner
+    ) external view returns (uint256) {
+        return liquidityLocks[_owner][_pair];
     }
 }
