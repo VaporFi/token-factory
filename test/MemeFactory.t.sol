@@ -40,11 +40,6 @@ contract MemeFactoryTest is Test {
 
     function setUp() public {
         vm.createSelectFork("https://api.avax.network/ext/bc/C/rpc");
-        _usdc = new ERC20Mock("USDC", "USDC"); // 18 Decimals
-        _usdc.mint(address(_user), 100000000 ether);
-        _usdc.mint(address(_jose), 100000000 ether);
-        _usdc.mint(address(_hitesh), 100000000 ether);
-        _usdc.mint(address(_roy), 100000000 ether);
         vm.deal(_user, 10000000 ether);
         vm.deal(_jose, 10000000 ether);
         vm.deal(_hitesh, 10000000 ether);
@@ -56,12 +51,14 @@ contract MemeFactoryTest is Test {
             _stratosphere,
             _vaporDexAggregator,
             _vaporDexAdapter,
-            teamMultisig,
             address(_usdc),
+            _vape,
             launchFee,
             minimumLiquidityETH,
             minlockDuration,
-            address(sablier)
+            address(sablier),
+            _liquidityPositionManager,
+            teamMultisig
         );
         vm.stopPrank();
     }
@@ -99,6 +96,7 @@ contract MemeFactoryTest is Test {
 
     function test_LaunchWithLPBurn() public {
         vm.startPrank(_user);
+        uint256 vapeUsdcPoolLiquidityBeforeLaunch = _vapeUsdcPool.liquidity();
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             true,

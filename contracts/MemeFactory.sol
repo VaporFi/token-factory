@@ -76,9 +76,9 @@ contract MemeFactory is Ownable {
     IERC20 private immutable WETH;
     IERC20 private immutable USDC;
     IERC20 private immutable VAPE;
-    address public vaporDexAdapter;
-    address public teamMultisig;
-    uint256 public launchFee;
+    address private vaporDexAdapter;
+    address private teamMultisig;
+    uint256 private launchFee;
     uint256 public minLiquidityETH;
     uint40 public minLockDuration;
 
