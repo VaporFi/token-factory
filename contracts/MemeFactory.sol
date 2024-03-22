@@ -68,14 +68,13 @@ contract MemeFactory is Ownable {
     ///////////////
     /// STORAGE ///
     ///////////////
-
-    address public immutable factory;
-    address public immutable router;
-    address public immutable stratosphere;
-    address public immutable vaporDexAggregator;
+    address private immutable factory;
+    address private immutable router;
+    address private immutable stratosphere;
+    IDexAggregator private immutable vaporDexAggregator;
     INonfungiblePositionManager private immutable nonFungiblePositionManager;
-    address public immutable WETH;
-    address public immutable USDC;
+    IERC20 private immutable WETH;
+    IERC20 private immutable USDC;
     IERC20 private immutable VAPE;
     address public vaporDexAdapter;
     address public teamMultisig;
@@ -110,6 +109,7 @@ contract MemeFactory is Ownable {
         address _vaporDexAggregator,
         address _vaporDexAdapter,
         address _usdc,
+        address _vape,
         uint256 _launchFee,
         uint256 _minLiquidityETH,
         uint40 _minLockDuration,
@@ -137,8 +137,9 @@ contract MemeFactory is Ownable {
         router = _routerAddress;
         IVaporDEXRouter _router = IVaporDEXRouter(_routerAddress);
         factory = _router.factory();
-        WETH = _router.WETH();
-        USDC = _usdc;
+        WETH = IERC20(_router.WETH());
+        USDC = IERC20(_usdc);
+        VAPE = IERC20(_vape);
         minLiquidityETH = _minLiquidityETH;
         minLockDuration = _minLockDuration;
         stratosphere = _stratosphereAddress;
@@ -190,14 +191,14 @@ contract MemeFactory is Ownable {
             _symbol,
             _totalSupply,
             _tradingStartsAt,
-            vaporDexAggregator,
+            address(vaporDexAggregator),
             vaporDexAdapter
         );
         _tokenAddress = address(_token);
 
         // Step 2: Create the pair
         IVaporDEXFactory _factory = IVaporDEXFactory(factory);
-        _pair = _factory.createPair(_tokenAddress, WETH);
+        _pair = _factory.createPair(_tokenAddress, address(WETH));
         _token.approve(router, _totalSupply);
         _token.approve(_pair, _totalSupply);
 
@@ -212,7 +213,7 @@ contract MemeFactory is Ownable {
             block.timestamp + 10 minutes
         );
         // Step 3: Get the pair address
-        _pair = IVaporDEXFactory(factory).getPair(_tokenAddress, WETH);
+        _pair = IVaporDEXFactory(factory).getPair(_tokenAddress, address(WETH));
         if (_pair == address(0)) {
             revert MemeFactory__ZeroAddress();
         }

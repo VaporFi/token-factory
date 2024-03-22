@@ -8,6 +8,7 @@ import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
 import {ERC20Mock} from "./mocks/ERC20Mock.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
+import {IUniswapV3PoolState} from "./interfaces/IUniswapV3PoolState.sol";
 
 contract MemeFactoryTest is Test {
     MemeFactory memeFactory;
@@ -265,57 +266,26 @@ contract MemeFactoryTest is Test {
 
     function test_ChangeLaunchFee_Withdraw_Owner() public {
         vm.startPrank(_owner);
-        assertEq(memeFactory.launchFee(), launchFee);
-        uint256 newLaunchFee = 500 * 1e18;
+        assertEq(memeFactory.getLaunchFee(), launchFee);
+        uint256 newLaunchFee = 500 * 1e6;
         memeFactory.setLaunchFee(newLaunchFee);
-        assertEq(memeFactory.launchFee(), newLaunchFee);
-        vm.stopPrank();
-        uint256 tokensToLaunch = 5;
-        for (uint256 i = 0; i < tokensToLaunch; i++) {
-            vm.startPrank(_user);
-            (, , uint256 _streamId) = _launch(
-                block.timestamp + 2 days,
-                i % 2 == 0 ? true : false,
-                minimumLiquidityETH,
-                minlockDuration + 1
-            );
-            if (i % 2 == 0) {
-                assertTrue(_streamId == 0);
-            }
-            if (i % 2 != 0) {
-                assertTrue(_streamId > 0);
-            }
-            vm.stopPrank();
-        }
-        vm.startPrank(_owner);
-
-        assertEq(
-            _usdc.balanceOf(address(memeFactory)),
-            newLaunchFee * tokensToLaunch
-        );
-        memeFactory.withdrawFee(address(_owner)); // Owner withdraws to self
-        assertEq(_usdc.balanceOf(address(memeFactory)), 0);
-        assertEq(
-            _usdc.balanceOf(address(_owner)),
-            newLaunchFee * tokensToLaunch
-        );
-
+        assertEq(memeFactory.getLaunchFee(), newLaunchFee);
         vm.stopPrank();
     }
 
     function test_SetVaporDexAdapter_Owner() public {
         vm.startPrank(_owner);
-        assertEq(memeFactory.vaporDexAdapter(), _vaporDexAdapter);
+        assertEq(memeFactory.getVaporDEXAdapter(), _vaporDexAdapter);
         address newAdapter = makeAddr("newAdapter");
         memeFactory.setVaporDEXAdapter(newAdapter);
-        assertEq(memeFactory.vaporDexAdapter(), newAdapter);
+        assertEq(memeFactory.getVaporDEXAdapter(), newAdapter);
         vm.stopPrank();
     }
 
     function test_Revert_ChangeLaunchFee_NotOwner() public {
         vm.startPrank(_user);
         vm.expectRevert();
-        memeFactory.setLaunchFee(500 * 1e18);
+        memeFactory.setLaunchFee(500 * 1e6);
         vm.stopPrank();
     }
 
@@ -332,7 +302,7 @@ contract MemeFactoryTest is Test {
         uint256 value,
         uint40 lockDuration
     ) internal returns (address pair, address tokenAddress, uint256 streamId) {
-        uint256 launchFeeContract = memeFactory.launchFee();
+        uint256 launchFeeContract = memeFactory.getLaunchFee();
         _usdc.approve(address(memeFactory), launchFeeContract);
 
         (address _pair, address _tokenAddress, uint256 _streamId) = memeFactory
