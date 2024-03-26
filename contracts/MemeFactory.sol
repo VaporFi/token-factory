@@ -87,10 +87,6 @@ contract MemeFactory is Ownable {
     // Mapping to store the streamId for each pair and lp owner
     mapping(address => mapping(address => uint256)) private liquidityLocks;
 
-    /////////////////////////
-    ////// CONSTRUCTOR /////
-    ////////////////////////
-
     /**
      * @dev MemeFactory constructor initializes the contract with required parameters.
      * @param _owner Address of the contract owner.
@@ -101,56 +97,64 @@ contract MemeFactory is Ownable {
      * @param _usdc Address of the USDC token.
      * @param _launchFee Launch fee in USDC.
      * @param _sablier Address of the Sablier contract.
+     * @param _nonFungiblePositionManager Uni v3 NFT Position Manager
+     * @param _teamMultisig Multisig address
      */
-    constructor(
-        address _owner,
-        address _routerAddress,
-        address _stratosphereAddress,
-        address _vaporDexAggregator,
-        address _vaporDexAdapter,
-        address _usdc,
-        address _vape,
-        uint256 _launchFee,
-        uint256 _minLiquidityETH,
-        uint40 _minLockDuration,
-        address _sablier,
-        address _nonFungiblePositionManager,
-        address _teamMultisig
-    ) Ownable(_owner) {
+    struct DeployArgs {
+        address _owner;
+        address _routerAddress;
+        address _stratosphereAddress;
+        address _vaporDexAggregator;
+        address _vaporDexAdapter;
+        address _usdc;
+        address _vape;
+        uint256 _launchFee;
+        uint256 _minLiquidityETH;
+        uint40 _minLockDuration;
+        address _sablier;
+        address _nonFungiblePositionManager;
+        address _teamMultisig;
+    }
+
+    /////////////////////////
+    ////// CONSTRUCTOR /////
+    ////////////////////////
+
+    constructor(DeployArgs memory args) Ownable(args._owner) {
         // Check for valid constructor arguments
         if (
-            _owner == address(0) ||
-            _routerAddress == address(0) ||
-            _stratosphereAddress == address(0) ||
-            _vaporDexAggregator == address(0) ||
-            _vaporDexAdapter == address(0) ||
-            _usdc == address(0) ||
-            _launchFee == 0 ||
-            _sablier == address(0) ||
-            _minLiquidityETH == 0 ||
-            _minLockDuration == 0
+            args._owner == address(0) ||
+            args._routerAddress == address(0) ||
+            args._stratosphereAddress == address(0) ||
+            args._vaporDexAggregator == address(0) ||
+            args._vaporDexAdapter == address(0) ||
+            args._usdc == address(0) ||
+            args._launchFee == 0 ||
+            args._sablier == address(0) ||
+            args._minLiquidityETH == 0 ||
+            args._minLockDuration == 0
         ) {
             revert MemeFactory__WrongConstructorArguments();
         }
 
         // Initialize variables
-        router = _routerAddress;
-        IVaporDEXRouter _router = IVaporDEXRouter(_routerAddress);
+        router = args._routerAddress;
+        IVaporDEXRouter _router = IVaporDEXRouter(args._routerAddress);
         factory = _router.factory();
         WETH = IERC20(_router.WETH());
-        USDC = IERC20(_usdc);
-        VAPE = IERC20(_vape);
-        minLiquidityETH = _minLiquidityETH;
-        minLockDuration = _minLockDuration;
-        stratosphere = _stratosphereAddress;
-        vaporDexAggregator = IDexAggregator(_vaporDexAggregator);
-        vaporDexAdapter = _vaporDexAdapter;
-        launchFee = _launchFee;
-        sablier = ISablierV2LockupLinear(_sablier);
+        USDC = IERC20(args._usdc);
+        VAPE = IERC20(args._vape);
+        minLiquidityETH = args._minLiquidityETH;
+        minLockDuration = args._minLockDuration;
+        stratosphere = args._stratosphereAddress;
+        vaporDexAggregator = IDexAggregator(args._vaporDexAggregator);
+        vaporDexAdapter = args._vaporDexAdapter;
+        launchFee = args._launchFee;
+        sablier = ISablierV2LockupLinear(args._sablier);
         nonFungiblePositionManager = INonfungiblePositionManager(
-            _nonFungiblePositionManager
+            args._nonFungiblePositionManager
         );
-        teamMultisig = _teamMultisig;
+        teamMultisig = args._teamMultisig;
     }
 
     /**

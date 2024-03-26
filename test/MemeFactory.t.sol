@@ -45,21 +45,22 @@ contract MemeFactoryTest is Test {
         vm.deal(_hitesh, 10000000 ether);
         vm.deal(_roy, 10000000 ether);
         vm.startPrank(_owner);
-        memeFactory = new MemeFactory(
-            _owner,
-            _router,
-            _stratosphere,
-            _vaporDexAggregator,
-            _vaporDexAdapter,
-            address(_usdc),
-            _vape,
-            launchFee,
-            minimumLiquidityETH,
-            minlockDuration,
-            address(sablier),
-            _liquidityPositionManager,
-            address(_teamMultiSig)
-        );
+        MemeFactory.DeployArgs memory args = MemeFactory.DeployArgs({
+            _owner: _owner,
+            _routerAddress: _router,
+            _stratosphereAddress: _stratosphere,
+            _vaporDexAggregator: _vaporDexAggregator,
+            _vaporDexAdapter: _vaporDexAdapter,
+            _usdc: address(_usdc),
+            _vape: _vape,
+            _launchFee: launchFee,
+            _minLiquidityETH: minimumLiquidityETH,
+            _minLockDuration: minlockDuration,
+            _sablier: address(sablier),
+            _nonFungiblePositionManager: _liquidityPositionManager,
+            _teamMultisig: address(_teamMultiSig)
+        });
+        memeFactory = new MemeFactory(args);
         vm.stopPrank();
     }
 
@@ -73,7 +74,7 @@ contract MemeFactoryTest is Test {
 
     function test_Revert_MinimumLiquidityETH() public {
         vm.startPrank(_user);
-
+        console.log(memeFactory.minLiquidityETH());
         vm.expectRevert();
         _launch(block.timestamp + 2 days, true, 9 ether, minlockDuration + 1);
 
