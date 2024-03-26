@@ -46,19 +46,19 @@ contract MemeFactoryTest is Test {
         vm.deal(_roy, 10000000 ether);
         vm.startPrank(_owner);
         MemeFactory.DeployArgs memory args = MemeFactory.DeployArgs({
-            _owner: _owner,
-            _routerAddress: _router,
-            _stratosphereAddress: _stratosphere,
-            _vaporDexAggregator: _vaporDexAggregator,
-            _vaporDexAdapter: _vaporDexAdapter,
-            _usdc: address(_usdc),
-            _vape: _vape,
-            _launchFee: launchFee,
-            _minLiquidityETH: minimumLiquidityETH,
-            _minLockDuration: minlockDuration,
-            _sablier: address(sablier),
-            _nonFungiblePositionManager: _liquidityPositionManager,
-            _teamMultisig: address(_teamMultiSig)
+            owner: _owner,
+            routerAddress: _router,
+            stratosphereAddress: _stratosphere,
+            vaporDexAggregator: _vaporDexAggregator,
+            vaporDexAdapter: _vaporDexAdapter,
+            usdc: address(_usdc),
+            vape: _vape,
+            launchFee: launchFee,
+            minLiquidityETH: minimumLiquidityETH,
+            minLockDuration: minlockDuration,
+            sablier: address(sablier),
+            nonFungiblePositionManager: _liquidityPositionManager,
+            teamMultisig: address(_teamMultiSig)
         });
         memeFactory = new MemeFactory(args);
         vm.stopPrank();

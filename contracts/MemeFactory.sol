@@ -89,72 +89,75 @@ contract MemeFactory is Ownable {
 
     /**
      * @dev MemeFactory constructor initializes the contract with required parameters.
-     * @param _owner Address of the contract owner.
-     * @param _routerAddress Address of the VaporDEXRouter contract.
-     * @param _stratosphereAddress Address of the Stratosphere contract.
-     * @param _vaporDexAggregator Address of the VaporDEX aggregator.
-     * @param _vaporDexAdapter Address of the VaporDEX adapter.
-     * @param _usdc Address of the USDC token.
-     * @param _launchFee Launch fee in USDC.
-     * @param _sablier Address of the Sablier contract.
-     * @param _nonFungiblePositionManager Uni v3 NFT Position Manager
-     * @param _teamMultisig Multisig address
+     * @param owner Address of the contract owner.
+     * @param routerAddress Address of the VaporDEXRouter contract.
+     * @param stratosphereAddress Address of the Stratosphere contract.
+     * @param vaporDexAggregator Address of the VaporDEX aggregator.
+     * @param vaporDexAdapter Address of the VaporDEX adapter.
+     * @param usdc Address of the USDC token.
+     * @param vape Address of the VAPE token.
+     * @param launchFee Launch fee in USDC.
+     * @param uint256 minLiquidityETH;
+     * @param uint40 minLockDuration;
+     * @param sablier Address of the Sablier contract.
+     * @param nonFungiblePositionManager Uni v3 NFT Position Manager
+     * @param teamMultisig Multisig address
      */
     struct DeployArgs {
-        address _owner;
-        address _routerAddress;
-        address _stratosphereAddress;
-        address _vaporDexAggregator;
-        address _vaporDexAdapter;
-        address _usdc;
-        address _vape;
-        uint256 _launchFee;
-        uint256 _minLiquidityETH;
-        uint40 _minLockDuration;
-        address _sablier;
-        address _nonFungiblePositionManager;
-        address _teamMultisig;
+        address owner;
+        address routerAddress;
+        address stratosphereAddress;
+        address vaporDexAggregator;
+        address vaporDexAdapter;
+        address usdc;
+        address vape;
+        uint256 launchFee;
+        uint256 minLiquidityETH;
+        uint40 minLockDuration;
+        address sablier;
+        address nonFungiblePositionManager;
+        address teamMultisig;
     }
 
     /////////////////////////
     ////// CONSTRUCTOR /////
     ////////////////////////
 
-    constructor(DeployArgs memory args) Ownable(args._owner) {
+    constructor(DeployArgs memory args) Ownable(args.owner) {
         // Check for valid constructor arguments
         if (
-            args._owner == address(0) ||
-            args._routerAddress == address(0) ||
-            args._stratosphereAddress == address(0) ||
-            args._vaporDexAggregator == address(0) ||
-            args._vaporDexAdapter == address(0) ||
-            args._usdc == address(0) ||
-            args._launchFee == 0 ||
-            args._sablier == address(0) ||
-            args._minLiquidityETH == 0 ||
-            args._minLockDuration == 0
+            args.owner == address(0) ||
+            args.routerAddress == address(0) ||
+            args.stratosphereAddress == address(0) ||
+            args.vaporDexAggregator == address(0) ||
+            args.vaporDexAdapter == address(0) ||
+            args.usdc == address(0) ||
+            args.launchFee == 0 ||
+            args.sablier == address(0) ||
+            args.minLiquidityETH == 0 ||
+            args.minLockDuration == 0
         ) {
             revert MemeFactory__WrongConstructorArguments();
         }
 
         // Initialize variables
-        router = args._routerAddress;
-        IVaporDEXRouter _router = IVaporDEXRouter(args._routerAddress);
+        router = args.routerAddress;
+        IVaporDEXRouter _router = IVaporDEXRouter(args.routerAddress);
         factory = _router.factory();
         WETH = IERC20(_router.WETH());
-        USDC = IERC20(args._usdc);
-        VAPE = IERC20(args._vape);
-        minLiquidityETH = args._minLiquidityETH;
-        minLockDuration = args._minLockDuration;
-        stratosphere = args._stratosphereAddress;
-        vaporDexAggregator = IDexAggregator(args._vaporDexAggregator);
-        vaporDexAdapter = args._vaporDexAdapter;
-        launchFee = args._launchFee;
-        sablier = ISablierV2LockupLinear(args._sablier);
+        USDC = IERC20(args.usdc);
+        VAPE = IERC20(args.vape);
+        minLiquidityETH = args.minLiquidityETH;
+        minLockDuration = args.minLockDuration;
+        stratosphere = args.stratosphereAddress;
+        vaporDexAggregator = IDexAggregator(args.vaporDexAggregator);
+        vaporDexAdapter = args.vaporDexAdapter;
+        launchFee = args.launchFee;
+        sablier = ISablierV2LockupLinear(args.sablier);
         nonFungiblePositionManager = INonfungiblePositionManager(
-            args._nonFungiblePositionManager
+            args.nonFungiblePositionManager
         );
-        teamMultisig = args._teamMultisig;
+        teamMultisig = args.teamMultisig;
     }
 
     /**

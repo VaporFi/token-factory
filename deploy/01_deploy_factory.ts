@@ -15,19 +15,19 @@ const func: DeployFunction = async function ({
     throw new Error("ChainId not found");
   }
   const args: MemeFactory.DeployArgsStruct = {
-    _owner: addresses.teamMultiSig[chainId],
-    _routerAddress: addresses.vaporDexRouter[chainId],
-    _stratosphereAddress: addresses.stratosphereNFT[chainId],
-    _vaporDexAggregator: addresses.vaporDexAggregatorRouter[chainId],
-    _vaporDexAdapter: addresses.vaporDexAggregatorAdapter[chainId],
-    _usdc: addresses.usdc[chainId],
-    _vape: addresses.vape[chainId],
-    _launchFee: launchFee,
-    _minLiquidityETH: BigInt(100000000),
-    _minLockDuration: 2,
-    _sablier: addresses.sablier[chainId],
-    _nonFungiblePositionManager: addresses.nonFungiblePositionManager[chainId],
-    _teamMultisig: addresses.teamMultiSig[chainId],
+    owner: addresses.teamMultiSig[chainId],
+    routerAddress: addresses.vaporDexRouter[chainId],
+    stratosphereAddress: addresses.stratosphereNFT[chainId],
+    vaporDexAggregator: addresses.vaporDexAggregatorRouter[chainId],
+    vaporDexAdapter: addresses.vaporDexAggregatorAdapter[chainId],
+    usdc: addresses.usdc[chainId],
+    vape: addresses.vape[chainId],
+    launchFee: launchFee,
+    minLiquidityETH: BigInt(100000000),
+    minLockDuration: 2,
+    sablier: addresses.sablier[chainId],
+    nonFungiblePositionManager: addresses.nonFungiblePositionManager[chainId],
+    teamMultisig: addresses.teamMultiSig[chainId],
   };
 
   const { deploy } = deployments;
