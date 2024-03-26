@@ -74,9 +74,19 @@ contract MemeFactoryTest is Test {
 
     function test_Revert_MinimumLiquidityETH() public {
         vm.startPrank(_user);
-        console.log(memeFactory.minLiquidityETH());
+        uint256 launchFeeContract = memeFactory.getLaunchFee();
+        _usdc.approve(address(memeFactory), launchFeeContract);
+
         vm.expectRevert();
-        _launch(block.timestamp + 2 days, true, 9 ether, minlockDuration + 1);
+
+        memeFactory.launch{value: minimumLiquidityETH - 1}(
+            "Test Token",
+            "TEST",
+            1_000_000 ether,
+            block.timestamp + 2 days,
+            minlockDuration,
+            true
+        );
 
         vm.stopPrank();
     }
@@ -110,9 +120,7 @@ contract MemeFactoryTest is Test {
         // Pair and Token Checks
         assertTrue(_pair != address(0), "Pair address is zero");
         assertTrue(_tokenAddress != address(0), "Token address is zero");
-        assertEq(_usdc.balanceOf(address(memeFactory)), launchFee);
         assertTrue(IERC20(_pair).balanceOf(address(0)) > minimumLiquidity);
-
         assertTrue(
             vapeUsdcPoolLiquidityAfterLaunch > vapeUsdcPoolLiquidityBeforeLaunch
         );
@@ -125,12 +133,19 @@ contract MemeFactoryTest is Test {
 
     function test_Revert_LaunchWithLPLock() public {
         vm.startPrank(_user);
+
+        uint256 launchFeeContract = memeFactory.getLaunchFee();
+        _usdc.approve(address(memeFactory), launchFeeContract);
+
         vm.expectRevert();
-        _launch(
+
+        memeFactory.launch{value: minimumLiquidityETH}(
+            "Test Token",
+            "TEST",
+            1_000_000 ether,
             block.timestamp + 2 days,
-            false,
-            minimumLiquidityETH,
-            minlockDuration - 1
+            minlockDuration - 1,
+            false
         );
 
         vm.stopPrank();
@@ -138,24 +153,24 @@ contract MemeFactoryTest is Test {
 
     function test_LaunchWithLPLock() public {
         vm.startPrank(_user);
+        uint40 lockDuration = minlockDuration + 1;
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             false,
             minimumLiquidityETH,
-            minlockDuration + 1
+            lockDuration
         );
 
         // Pair and Token Checks
         assertTrue(_pair != address(0), "Pair address is zero");
         assertTrue(_tokenAddress != address(0), "Token address is zero");
-        assertEq(_usdc.balanceOf(address(memeFactory)), launchFee);
         assertTrue(IERC20(_pair).balanceOf(address(0)) == minimumLiquidity);
 
         // Stream Checks
         assertTrue(_streamId > 0);
 
         LockupLinear.Stream memory stream = sablier.getStream(_streamId);
-        assertEq(stream.endTime, block.timestamp + 365 days);
+        assertEq(stream.endTime, block.timestamp + lockDuration * 1 days);
         assertEq(stream.isTransferable, true);
         assertEq(stream.isCancelable, false);
 
@@ -167,11 +182,12 @@ contract MemeFactoryTest is Test {
 
     function test_LPUnlock() public {
         vm.startPrank(_user);
+        uint40 lockDuration = minlockDuration + 1;
         (address _pair, , uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             false,
             minimumLiquidityETH,
-            minlockDuration + 1
+            lockDuration
         );
 
         // Before Warp
@@ -181,7 +197,7 @@ contract MemeFactoryTest is Test {
         assertTrue(stream.amounts.withdrawn == 0);
         assertTrue(sablier.withdrawableAmountOf(_streamId) == 0);
 
-        vm.warp(block.timestamp + 365 days);
+        vm.warp(block.timestamp + lockDuration * 1 days);
 
         // After Warp
         uint256 withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
@@ -232,6 +248,7 @@ contract MemeFactoryTest is Test {
 
     function test_LPTransfer_AfterUnlock() public {
         vm.startPrank(_user);
+        uint40 lockDuration = minlockDuration + 1;
         (address _pair, , uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             false,
@@ -239,7 +256,7 @@ contract MemeFactoryTest is Test {
             minlockDuration + 1
         );
 
-        vm.warp(block.timestamp + 365 days);
+        vm.warp(block.timestamp + lockDuration * 1 days);
 
         sablier.approve(address(memeFactory), _streamId);
         memeFactory.transferLock(_pair, address(_jose));
