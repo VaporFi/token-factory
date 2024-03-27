@@ -1,16 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.7.5;
 
-
-
 /// @title Non-fungible token for positions
 /// @notice Wraps Uniswap V3 positions in a non-fungible token interface which allows for them to be transferred
 /// and authorized.
-interface INonfungiblePositionManager
-   
-{
-    
-
+interface INonfungiblePositionManager {
     struct MintParams {
         address token0;
         address token1;
@@ -33,7 +27,9 @@ interface INonfungiblePositionManager
     /// @return liquidity The amount of liquidity for this position
     /// @return amount0 The amount of token0
     /// @return amount1 The amount of token1
-    function mint(MintParams calldata params)
+    function mint(
+        MintParams calldata params
+    )
         external
         payable
         returns (
@@ -42,5 +38,4 @@ interface INonfungiblePositionManager
             uint256 amount0,
             uint256 amount1
         );
-
 }

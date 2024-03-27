@@ -26,6 +26,8 @@ error MemeFactory__WrongLaunchArguments();
 error MemeFactory__InsufficientBalance();
 error MemeFactory__Invalid();
 error MemeFactory__TranferFailed(address);
+error MemeFactory__NotEnoughLiquidity();
+error MemeFactory__MinimumLockDuration();
 
 /// @title MemeFactory
 /// @author Roy & Jose
@@ -58,13 +60,14 @@ contract MemeFactory is Ownable {
         address indexed _to
     );
     event LaunchFeeUpdated(uint256 _newFee);
+    event MinimumLiquidityETHUpdated(uint256 _newFee);
+    event MinimumLockDurationUpdated(uint40 _newFee);
     event VaporDEXAdapterUpdated(address _newAdapter);
     event AccumulatedFeesWithdrawn(address _to, uint256 _amount);
 
     ///////////////
     /// STORAGE ///
     ///////////////
-
     address private immutable factory;
     address private immutable router;
     address private immutable stratosphere;
@@ -76,70 +79,85 @@ contract MemeFactory is Ownable {
     address private vaporDexAdapter;
     address private teamMultisig;
     uint256 private launchFee;
+    uint256 public minLiquidityETH;
+    uint40 public minLockDuration;
 
     // Sablier
     ISablierV2LockupLinear private immutable sablier;
     // Mapping to store the streamId for each pair and lp owner
     mapping(address => mapping(address => uint256)) private liquidityLocks;
 
+    /**
+     * @dev MemeFactory constructor initializes the contract with required parameters.
+     * @param owner Address of the contract owner.
+     * @param routerAddress Address of the VaporDEXRouter contract.
+     * @param stratosphereAddress Address of the Stratosphere contract.
+     * @param vaporDexAggregator Address of the VaporDEX aggregator.
+     * @param vaporDexAdapter Address of the VaporDEX adapter.
+     * @param usdc Address of the USDC token.
+     * @param vape Address of the VAPE token.
+     * @param launchFee Launch fee in USDC.
+     * @param uint256 minLiquidityETH;
+     * @param uint40 minLockDuration;
+     * @param sablier Address of the Sablier contract.
+     * @param nonFungiblePositionManager Uni v3 NFT Position Manager
+     * @param teamMultisig Multisig address
+     */
+    struct DeployArgs {
+        address owner;
+        address routerAddress;
+        address stratosphereAddress;
+        address vaporDexAggregator;
+        address vaporDexAdapter;
+        address usdc;
+        address vape;
+        uint256 launchFee;
+        uint256 minLiquidityETH;
+        uint40 minLockDuration;
+        address sablier;
+        address nonFungiblePositionManager;
+        address teamMultisig;
+    }
+
     /////////////////////////
     ////// CONSTRUCTOR /////
     ////////////////////////
 
-    /**
-     * @dev MemeFactory constructor initializes the contract with required parameters.
-     * @param _owner Address of the contract owner.
-     * @param _routerAddress Address of the VaporDEXRouter contract.
-     * @param _stratosphereAddress Address of the Stratosphere contract.
-     * @param _vaporDexAggregator Address of the VaporDEX aggregator.
-     * @param _vaporDexAdapter Address of the VaporDEX adapter.
-     * @param _usdc Address of the USDC token.
-     * @param _launchFee Launch fee in USDC.
-     * @param _sablier Address of the Sablier contract.
-     */
-    constructor(
-        address _owner,
-        address _routerAddress,
-        address _stratosphereAddress,
-        address _vaporDexAggregator,
-        address _vaporDexAdapter,
-        address _usdc,
-        address _vape,
-        uint256 _launchFee,
-        address _sablier,
-        address _nonFungiblePositionManager,
-        address _teamMultisig
-    ) Ownable(_owner) {
+    constructor(DeployArgs memory args) Ownable(args.owner) {
         // Check for valid constructor arguments
         if (
-            _owner == address(0) ||
-            _routerAddress == address(0) ||
-            _stratosphereAddress == address(0) ||
-            _vaporDexAggregator == address(0) ||
-            _vaporDexAdapter == address(0) ||
-            _usdc == address(0) ||
-            _launchFee == 0 ||
-            _sablier == address(0)
+            args.owner == address(0) ||
+            args.routerAddress == address(0) ||
+            args.stratosphereAddress == address(0) ||
+            args.vaporDexAggregator == address(0) ||
+            args.vaporDexAdapter == address(0) ||
+            args.usdc == address(0) ||
+            args.launchFee == 0 ||
+            args.sablier == address(0) ||
+            args.minLiquidityETH == 0 ||
+            args.minLockDuration == 0
         ) {
             revert MemeFactory__WrongConstructorArguments();
         }
 
         // Initialize variables
-        router = _routerAddress;
-        IVaporDEXRouter _router = IVaporDEXRouter(_routerAddress);
+        router = args.routerAddress;
+        IVaporDEXRouter _router = IVaporDEXRouter(args.routerAddress);
         factory = _router.factory();
         WETH = IERC20(_router.WETH());
-        USDC = IERC20(_usdc);
-        VAPE = IERC20(_vape);
-        stratosphere = _stratosphereAddress;
-        vaporDexAggregator = IDexAggregator(_vaporDexAggregator);
-        vaporDexAdapter = _vaporDexAdapter;
-        launchFee = _launchFee;
-        sablier = ISablierV2LockupLinear(_sablier);
+        USDC = IERC20(args.usdc);
+        VAPE = IERC20(args.vape);
+        minLiquidityETH = args.minLiquidityETH;
+        minLockDuration = args.minLockDuration;
+        stratosphere = args.stratosphereAddress;
+        vaporDexAggregator = IDexAggregator(args.vaporDexAggregator);
+        vaporDexAdapter = args.vaporDexAdapter;
+        launchFee = args.launchFee;
+        sablier = ISablierV2LockupLinear(args.sablier);
         nonFungiblePositionManager = INonfungiblePositionManager(
-            _nonFungiblePositionManager
+            args.nonFungiblePositionManager
         );
-        teamMultisig = _teamMultisig;
+        teamMultisig = args.teamMultisig;
     }
 
     /**
@@ -148,6 +166,7 @@ contract MemeFactory is Ownable {
      * @param _symbol Symbol of the token.
      * @param _totalSupply Total supply of the token.
      * @param _tradingStartsAt Timestamp when trading starts for the token.
+     * @param lockDuration Number of days to lock liquidity for.
      * @param _burnLiquidity Flag indicating whether to burn liquidity or lock it.
      * @return _pair Address of the created token pair.
      * @return _tokenAddress Address of the launched token.
@@ -159,12 +178,17 @@ contract MemeFactory is Ownable {
         string memory _symbol,
         uint256 _totalSupply,
         uint256 _tradingStartsAt,
+        uint40 lockDuration,
         bool _burnLiquidity
     )
         external
         payable
         returns (address _pair, address _tokenAddress, uint256 streamId)
     {
+        uint256 value = msg.value;
+        if (value < minLiquidityETH) {
+            revert MemeFactory__NotEnoughLiquidity();
+        }
         // Step 0: Transfer Fee
         _transferLaunchFee(msg.sender);
 
@@ -187,11 +211,11 @@ contract MemeFactory is Ownable {
 
         // Step 2: Add Liquidity
         IVaporDEXRouter _router = IVaporDEXRouter(router);
-        _router.addLiquidityETH{value: msg.value}(
+        _router.addLiquidityETH{value: value}(
             _tokenAddress,
             _totalSupply,
             _totalSupply,
-            msg.value,
+            value,
             address(this),
             block.timestamp + 10 minutes
         );
@@ -218,6 +242,9 @@ contract MemeFactory is Ownable {
                 _lpToken.balanceOf(address(this))
             );
         } else {
+            if (lockDuration < minLockDuration) {
+                revert MemeFactory__MinimumLockDuration();
+            }
             _lpToken.approve(
                 address(sablier),
                 _lpToken.balanceOf(address(this))
@@ -234,8 +261,8 @@ contract MemeFactory is Ownable {
             params.cancelable = false; // Whether the stream will be cancelable or not
             params.transferable = true; // Whether the stream will be transferrable or not
             params.durations = LockupLinear.Durations({
-                cliff: 365 days - 1 seconds, // Assets will be unlocked only after the cliff period
-                total: 365 days
+                cliff: lockDuration * 1 days - 1 seconds, // Assets will be unlocked only after the cliff period
+                total: lockDuration * 1 days
             });
 
             // Create the stream
@@ -303,6 +330,32 @@ contract MemeFactory is Ownable {
         sablier.transferFrom({from: msg.sender, to: _to, tokenId: streamId}); // Other reverts are handled by Sablier
 
         emit LiquidityTransferred(_pair, _to);
+    }
+
+    /**
+     * @dev Sets the minimum liquidity for creating new tokens.
+     * @param _liquidity New liquidity.
+     */
+
+    function setMinimumLiquidityETH(uint256 _liquidity) external onlyOwner {
+        if (_liquidity == 0) {
+            revert MemeFactory__Invalid();
+        }
+        minLiquidityETH = _liquidity;
+        emit MinimumLiquidityETHUpdated(_liquidity);
+    }
+
+    /**
+     * @dev Sets the minimum liquidity for creating new tokens.
+     * @param _lockDuration New lock duration in days.
+     */
+
+    function setMinLockDuration(uint40 _lockDuration) external onlyOwner {
+        if (_lockDuration == 0) {
+            revert MemeFactory__Invalid();
+        }
+        minLockDuration = _lockDuration;
+        emit MinimumLockDurationUpdated(_lockDuration);
     }
 
     /**
@@ -430,8 +483,8 @@ contract MemeFactory is Ownable {
         uint256 amountInVAPE = VAPE.balanceOf(address(this));
         USDC.approve(address(nonFungiblePositionManager), amountInUSDC);
         VAPE.approve(address(nonFungiblePositionManager), amountInVAPE);
-        INonfungiblePositionManager.MintParams
-            memory mintParams = INonfungiblePositionManager.MintParams({
+        INonfungiblePositionManager.MintParams memory mintParams = INonfungiblePositionManager
+            .MintParams({
                 token0: address(VAPE),
                 token1: address(USDC),
                 fee: 3000,
@@ -444,12 +497,7 @@ contract MemeFactory is Ownable {
                 recipient: teamMultisig,
                 deadline: block.timestamp + 2 minutes
             });
-        (
-            uint256 tokenId,
-            uint128 liquidity,
-            uint256 amount0,
-            uint256 amount1
-        ) = nonFungiblePositionManager.mint(mintParams);
+        nonFungiblePositionManager.mint(mintParams);
 
         // Q: What checks should be done with the return values?
     }
