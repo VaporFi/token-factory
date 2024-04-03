@@ -60,6 +60,7 @@ contract MemeFactory is Ownable {
         address indexed _to
     );
     event LaunchFeeUpdated(uint256 _newFee);
+    event SlippageUpdated(uint256 _newSlippage);
     event MinimumLiquidityETHUpdated(uint256 _newFee);
     event MinimumLockDurationUpdated(uint40 _newFee);
     event VaporDEXAdapterUpdated(address _newAdapter);
@@ -80,6 +81,7 @@ contract MemeFactory is Ownable {
     address private teamMultisig;
     uint256 private launchFee;
     uint256 public minLiquidityETH;
+    uint256 public slippage;
     uint40 public minLockDuration;
 
     // Sablier
@@ -102,6 +104,7 @@ contract MemeFactory is Ownable {
      * @param sablier Address of the Sablier contract.
      * @param nonFungiblePositionManager Uni v3 NFT Position Manager
      * @param teamMultisig Multisig address
+     * @param slippage
      */
     struct DeployArgs {
         address owner;
@@ -117,6 +120,7 @@ contract MemeFactory is Ownable {
         address sablier;
         address nonFungiblePositionManager;
         address teamMultisig;
+        uint256 slippage;
     }
 
     /////////////////////////
@@ -141,6 +145,7 @@ contract MemeFactory is Ownable {
         }
 
         // Initialize variables
+        slippage = args.slippage;
         router = args.routerAddress;
         IVaporDEXRouter _router = IVaporDEXRouter(args.routerAddress);
         factory = _router.factory();
@@ -149,6 +154,7 @@ contract MemeFactory is Ownable {
         VAPE = IERC20(args.vape);
         minLiquidityETH = args.minLiquidityETH;
         minLockDuration = args.minLockDuration;
+
         stratosphere = args.stratosphereAddress;
         vaporDexAggregator = IDexAggregator(args.vaporDexAggregator);
         vaporDexAdapter = args.vaporDexAdapter;
@@ -347,6 +353,16 @@ contract MemeFactory is Ownable {
 
     /**
      * @dev Sets the minimum liquidity for creating new tokens.
+     * @param _slippage New lock duration in days.
+     */
+
+    function setSlippage(uint256 _slippage) external onlyOwner {
+        slippage = _slippage;
+        emit SlippageUpdated(_slippage);
+    }
+
+    /**
+     * @dev Sets the minimum liquidity for creating new tokens.
      * @param _lockDuration New lock duration in days.
      */
 
@@ -492,8 +508,8 @@ contract MemeFactory is Ownable {
                 tickUpper: 887220, // full range
                 amount0Desired: amountInVAPE,
                 amount1Desired: amountInUSDC,
-                amount0Min: amountInVAPE - _percentage(amountInVAPE, 200), // 2% slippage
-                amount1Min: amountInUSDC - _percentage(amountInUSDC, 200), // 2% slippage
+                amount0Min: amountInVAPE - _percentage(amountInVAPE, slippage), // 2% slippage
+                amount1Min: amountInUSDC - _percentage(amountInUSDC, slippage), // 2% slippage
                 recipient: teamMultisig,
                 deadline: block.timestamp + 2 minutes
             });

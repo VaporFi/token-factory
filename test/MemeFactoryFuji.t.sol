@@ -15,32 +15,32 @@ contract MemeFactoryTest is Test {
     address _owner = makeAddr("owner");
     address _teamMultiSig = makeAddr("teamMultiSig");
     address _router = 0x19C0FC4562A4b76F27f86c676eF5a7e38D12a20d;
-    address _stratosphere = 0x08e287adCf9BF6773a87e1a278aa9042BEF44b60;
+    address _stratosphere = 0x65eB37AeB1F2a9cE39556F80044607dD969b0336;
     address _vaporDexAggregator = 0x55477d8537ede381784b448876AfAa98aa450E63;
-    address _vaporDexAdapter = 0x01e5C45cB25E30860c2Fb80369A9C27628911a2b;
-    address _vape = 0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55;
+    address _vaporDexAdapter = 0x3F1aF4D92c91511A0BCe4B21bc256bF63bcab470;
+    address _vape = 0x3bD01B76BB969ef2D5103b5Ea84909AD8d345663;
     address _liquidityPositionManager =
-        0xC967b23826DdAB00d9AAd3702CbF5261B7Ed9a3a;
-    IERC20 _usdc = IERC20(0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E); // real USDC
+        0x7a0A7C4273B25b3a71Daeaa387c7855081AC4E56;
+    IERC20 _usdc = IERC20(0xeA42E3030ab1406a0b6aAd077Caa927673a2c302); // real USDC
     IUniswapV3PoolState _vapeUsdcPool =
-        IUniswapV3PoolState(0xE4691B761F10924f26a974E75Dae3bAbda9aC39b); // VAPE/USDC Pool
+        IUniswapV3PoolState(0xb1ca210D7429584eF3B50cD32B564b4f72b9D07c); // VAPE/USDC Pool
     ISablierV2LockupLinear sablier =
-        ISablierV2LockupLinear(0xB24B65E015620455bB41deAAd4e1902f1Be9805f);
+        ISablierV2LockupLinear(0xebf7ed508a0Bb1c4e66b9E6F8C6a73342E7049ac);
     // Addresses that hold USDC on mainnet
-    address _user = 0xB4a67CD735F27a31Bfda07656878f539193b7a63;
-    address _jose = 0x88Ca98958A97a139884D49336fbC8D588Fdb5Af1;
-    address _hitesh = 0xD20109cc6088B52EC8461f35c2D48dc88e10a971;
-    address _roy = 0x9A9f01c11E03042E7763e9305f36FF18f0add81B;
+    address _user = 0xbbE2B49D637629280543d9550bceB80bF802287e;
+    address _jose = 0xbbE2B49D637629280543d9550bceB80bF802287e;
+    address _hitesh = 0xbbE2B49D637629280543d9550bceB80bF802287e;
+    address _roy = 0xbbE2B49D637629280543d9550bceB80bF802287e;
 
     uint256 launchFee = 250 * 1e6;
     // Minimum liquidity required to create a pair on VaporDEXV1 Pool
     uint256 minimumLiquidity = 10 ** 3; // https://github.com/VaporFi/vapordex-contracts/blob/staging/contracts/VaporDEX/VaporDEXPair.sol#L21
     uint256 minimumLiquidityETH = 10 ether; // to create token
     uint40 minlockDuration = 90; // 3 months
-    uint256 slippage = 200; // 2%
+    uint256 slippage = 10000; // 100%
 
     function setUp() public {
-        vm.createSelectFork("https://api.avax.network/ext/bc/C/rpc");
+        vm.createSelectFork("https://rpc.ankr.com/avalanche_fuji");
         vm.deal(_user, 10000000 ether);
         vm.deal(_jose, 10000000 ether);
         vm.deal(_hitesh, 10000000 ether);
@@ -133,6 +133,7 @@ contract MemeFactoryTest is Test {
         vm.stopPrank();
     }
 
+    // no sablier in fuji, commented them
     function test_Revert_LaunchWithLPLock() public {
         vm.startPrank(_user);
 
