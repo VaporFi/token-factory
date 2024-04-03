@@ -1,8 +1,12 @@
-export const addresses: {
+type Config<T> = {
   [key: string]: {
-    [chainId: number]: string;
+    [chainId: number]: T;
   };
-} = {
+};
+export const config: Config<bigint> = {
+  slippage: { 43_113: BigInt("10000"), 43_114: BigInt("200") },
+};
+export const addresses: Config<string> = {
   teamMultiSig: {
     43_113: "0xCf00c1ac6D26d52054ec89bE6e093F2E270D61d9",
     43_114: "0x6769DB4e3E94A63089f258B9500e0695586315bA",

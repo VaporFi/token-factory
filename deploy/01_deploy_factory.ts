@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { addresses } from "../config";
+import { addresses, config } from "../config";
 import { MemeFactory } from "../typechain-types/index";
 const launchFee = "250000000";
 
@@ -28,6 +28,7 @@ const func: DeployFunction = async function ({
     sablier: addresses.sablier[chainId],
     nonFungiblePositionManager: addresses.nonFungiblePositionManager[chainId],
     teamMultisig: addresses.teamMultiSig[chainId],
+    slippage: config.slippage[chainId],
   };
 
   const { deploy } = deployments;
