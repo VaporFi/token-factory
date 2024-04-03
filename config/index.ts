@@ -16,8 +16,8 @@ export const addresses: {
     43_114: "0x08e287adCf9BF6773a87e1a278aa9042BEF44b60",
   },
   vaporDexAggregatorRouter: {
-    43_113: "0x184eaB8D97cE56Cf77e2571e8f1D6F697076a831",
-    43_114: "0xDef9ee39FD82ee57a1b789Bc877E2Cbd88fd5caE",
+    43_113: "0x55477d8537ede381784b448876AfAa98aa450E63",
+    43_114: "0x55477d8537ede381784b448876AfAa98aa450E63",
   },
   vaporDexAggregatorAdapter: {
     43_113: "0x3F1aF4D92c91511A0BCe4B21bc256bF63bcab470",

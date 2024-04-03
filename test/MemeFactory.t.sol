@@ -37,6 +37,7 @@ contract MemeFactoryTest is Test {
     uint256 minimumLiquidity = 10 ** 3; // https://github.com/VaporFi/vapordex-contracts/blob/staging/contracts/VaporDEX/VaporDEXPair.sol#L21
     uint256 minimumLiquidityETH = 10 ether; // to create token
     uint40 minlockDuration = 90; // 3 months
+    uint256 slippage = 200; // 20%
 
     function setUp() public {
         vm.createSelectFork("https://api.avax.network/ext/bc/C/rpc");
@@ -58,7 +59,8 @@ contract MemeFactoryTest is Test {
             minLockDuration: minlockDuration,
             sablier: address(sablier),
             nonFungiblePositionManager: _liquidityPositionManager,
-            teamMultisig: address(_teamMultiSig)
+            teamMultisig: address(_teamMultiSig),
+            slippage: slippage
         });
         memeFactory = new MemeFactory(args);
         vm.stopPrank();
