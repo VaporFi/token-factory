@@ -25,7 +25,7 @@ contract MemeFactoryTest is Test {
     IUniswapV3PoolState _vapeUsdcPool =
         IUniswapV3PoolState(0xb1ca210D7429584eF3B50cD32B564b4f72b9D07c); // VAPE/USDC Pool
     ISablierV2LockupLinear sablier =
-        ISablierV2LockupLinear(0xB24B65E015620455bB41deAAd4e1902f1Be9805f);
+        ISablierV2LockupLinear(0xebf7ed508a0Bb1c4e66b9E6F8C6a73342E7049ac);
     // Addresses that hold USDC on mainnet
     address _user = 0xbbE2B49D637629280543d9550bceB80bF802287e;
     address _jose = 0xbbE2B49D637629280543d9550bceB80bF802287e;
@@ -134,154 +134,154 @@ contract MemeFactoryTest is Test {
     }
 
     // no sablier in fuji, commented them
-    // function test_Revert_LaunchWithLPLock() public {
-    //     vm.startPrank(_user);
+    function test_Revert_LaunchWithLPLock() public {
+        vm.startPrank(_user);
 
-    //     uint256 launchFeeContract = memeFactory.getLaunchFee();
-    //     _usdc.approve(address(memeFactory), launchFeeContract);
+        uint256 launchFeeContract = memeFactory.getLaunchFee();
+        _usdc.approve(address(memeFactory), launchFeeContract);
 
-    //     vm.expectRevert();
+        vm.expectRevert();
 
-    //     memeFactory.launch{value: minimumLiquidityETH}(
-    //         "Test Token",
-    //         "TEST",
-    //         1_000_000 ether,
-    //         block.timestamp + 2 days,
-    //         minlockDuration - 1,
-    //         false
-    //     );
+        memeFactory.launch{value: minimumLiquidityETH}(
+            "Test Token",
+            "TEST",
+            1_000_000 ether,
+            block.timestamp + 2 days,
+            minlockDuration - 1,
+            false
+        );
 
-    //     vm.stopPrank();
-    // }
+        vm.stopPrank();
+    }
 
-    // function test_LaunchWithLPLock() public {
-    //     vm.startPrank(_user);
-    //     uint40 lockDuration = minlockDuration + 1;
-    //     (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
-    //         block.timestamp + 2 days,
-    //         false,
-    //         minimumLiquidityETH,
-    //         lockDuration
-    //     );
+    function test_LaunchWithLPLock() public {
+        vm.startPrank(_user);
+        uint40 lockDuration = minlockDuration + 1;
+        (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
+            block.timestamp + 2 days,
+            false,
+            minimumLiquidityETH,
+            lockDuration
+        );
 
-    //     // Pair and Token Checks
-    //     assertTrue(_pair != address(0), "Pair address is zero");
-    //     assertTrue(_tokenAddress != address(0), "Token address is zero");
-    //     assertTrue(IERC20(_pair).balanceOf(address(0)) == minimumLiquidity);
+        // Pair and Token Checks
+        assertTrue(_pair != address(0), "Pair address is zero");
+        assertTrue(_tokenAddress != address(0), "Token address is zero");
+        assertTrue(IERC20(_pair).balanceOf(address(0)) == minimumLiquidity);
 
-    //     // Stream Checks
-    //     assertTrue(_streamId > 0);
+        // Stream Checks
+        assertTrue(_streamId > 0);
 
-    //     LockupLinear.Stream memory stream = sablier.getStream(_streamId);
-    //     assertEq(stream.endTime, block.timestamp + lockDuration * 1 days);
-    //     assertEq(stream.isTransferable, true);
-    //     assertEq(stream.isCancelable, false);
+        LockupLinear.Stream memory stream = sablier.getStream(_streamId);
+        assertEq(stream.endTime, block.timestamp + lockDuration * 1 days);
+        assertEq(stream.isTransferable, true);
+        assertEq(stream.isCancelable, false);
 
-    //     address ownerOfStream = sablier.ownerOf(_streamId);
-    //     assertTrue(ownerOfStream == _user);
+        address ownerOfStream = sablier.ownerOf(_streamId);
+        assertTrue(ownerOfStream == _user);
 
-    //     vm.stopPrank();
-    // }
+        vm.stopPrank();
+    }
 
-    // function test_LPUnlock() public {
-    //     vm.startPrank(_user);
-    //     uint40 lockDuration = minlockDuration + 1;
-    //     (address _pair, , uint256 _streamId) = _launch(
-    //         block.timestamp + 2 days,
-    //         false,
-    //         minimumLiquidityETH,
-    //         lockDuration
-    //     );
+    function test_LPUnlock() public {
+        vm.startPrank(_user);
+        uint40 lockDuration = minlockDuration + 1;
+        (address _pair, , uint256 _streamId) = _launch(
+            block.timestamp + 2 days,
+            false,
+            minimumLiquidityETH,
+            lockDuration
+        );
 
-    //     // Before Warp
-    //     LockupLinear.Stream memory stream = sablier.getStream(_streamId);
-    //     assertTrue(IERC20(_pair).balanceOf(address(_user)) == 0);
-    //     assertEq(stream.isDepleted, false);
-    //     assertTrue(stream.amounts.withdrawn == 0);
-    //     assertTrue(sablier.withdrawableAmountOf(_streamId) == 0);
+        // Before Warp
+        LockupLinear.Stream memory stream = sablier.getStream(_streamId);
+        assertTrue(IERC20(_pair).balanceOf(address(_user)) == 0);
+        assertEq(stream.isDepleted, false);
+        assertTrue(stream.amounts.withdrawn == 0);
+        assertTrue(sablier.withdrawableAmountOf(_streamId) == 0);
 
-    //     vm.warp(block.timestamp + lockDuration * 1 days);
+        vm.warp(block.timestamp + lockDuration * 1 days);
 
-    //     // After Warp
-    //     uint256 withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
-    //     assertTrue(withdrawableAmount > 0);
+        // After Warp
+        uint256 withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
+        assertTrue(withdrawableAmount > 0);
 
-    //     memeFactory.unlockLiquidityTokens(_pair, address(_user));
-    //     assertTrue(
-    //         IERC20(_pair).balanceOf(address(_user)) == withdrawableAmount
-    //     );
+        memeFactory.unlockLiquidityTokens(_pair, address(_user));
+        assertTrue(
+            IERC20(_pair).balanceOf(address(_user)) == withdrawableAmount
+        );
 
-    //     stream = sablier.getStream(_streamId);
+        stream = sablier.getStream(_streamId);
 
-    //     assertEq(stream.isDepleted, true);
-    //     assertTrue(stream.amounts.withdrawn == withdrawableAmount);
-    //     withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
-    //     assertTrue(withdrawableAmount == 0);
+        assertEq(stream.isDepleted, true);
+        assertTrue(stream.amounts.withdrawn == withdrawableAmount);
+        withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
+        assertTrue(withdrawableAmount == 0);
 
-    //     vm.stopPrank();
-    // }
+        vm.stopPrank();
+    }
 
-    // function test_LPTransfer_BeforeUnlock() public {
-    //     vm.startPrank(_user);
-    //     (address _pair, , uint256 _streamId) = _launch(
-    //         block.timestamp + 2 days,
-    //         false,
-    //         minimumLiquidityETH,
-    //         minlockDuration + 1
-    //     );
+    function test_LPTransfer_BeforeUnlock() public {
+        vm.startPrank(_user);
+        (address _pair, , uint256 _streamId) = _launch(
+            block.timestamp + 2 days,
+            false,
+            minimumLiquidityETH,
+            minlockDuration + 1
+        );
 
-    //     LockupLinear.Stream memory stream = sablier.getStream(_streamId);
-    //     assertTrue(IERC20(_pair).balanceOf(address(_user)) == 0);
-    //     assertEq(stream.isDepleted, false);
-    //     assertTrue(stream.amounts.withdrawn == 0);
-    //     assertTrue(sablier.withdrawableAmountOf(_streamId) == 0);
+        LockupLinear.Stream memory stream = sablier.getStream(_streamId);
+        assertTrue(IERC20(_pair).balanceOf(address(_user)) == 0);
+        assertEq(stream.isDepleted, false);
+        assertTrue(stream.amounts.withdrawn == 0);
+        assertTrue(sablier.withdrawableAmountOf(_streamId) == 0);
 
-    //     sablier.approve(address(memeFactory), _streamId);
-    //     memeFactory.transferLock(_pair, address(_jose));
-    //     address ownerOfStream = sablier.ownerOf(_streamId);
-    //     assertTrue(ownerOfStream == address(_jose));
+        sablier.approve(address(memeFactory), _streamId);
+        memeFactory.transferLock(_pair, address(_jose));
+        address ownerOfStream = sablier.ownerOf(_streamId);
+        assertTrue(ownerOfStream == address(_jose));
 
-    //     stream = sablier.getStream(_streamId);
-    //     assertEq(stream.isDepleted, false);
-    //     assertTrue(stream.amounts.withdrawn == 0);
-    //     assertTrue(sablier.withdrawableAmountOf(_streamId) == 0);
+        stream = sablier.getStream(_streamId);
+        assertEq(stream.isDepleted, false);
+        assertTrue(stream.amounts.withdrawn == 0);
+        assertTrue(sablier.withdrawableAmountOf(_streamId) == 0);
 
-    //     vm.stopPrank();
-    // }
+        vm.stopPrank();
+    }
 
-    // function test_LPTransfer_AfterUnlock() public {
-    //     vm.startPrank(_user);
-    //     uint40 lockDuration = minlockDuration + 1;
-    //     (address _pair, , uint256 _streamId) = _launch(
-    //         block.timestamp + 2 days,
-    //         false,
-    //         minimumLiquidityETH,
-    //         minlockDuration + 1
-    //     );
+    function test_LPTransfer_AfterUnlock() public {
+        vm.startPrank(_user);
+        uint40 lockDuration = minlockDuration + 1;
+        (address _pair, , uint256 _streamId) = _launch(
+            block.timestamp + 2 days,
+            false,
+            minimumLiquidityETH,
+            minlockDuration + 1
+        );
 
-    //     vm.warp(block.timestamp + lockDuration * 1 days);
+        vm.warp(block.timestamp + lockDuration * 1 days);
 
-    //     sablier.approve(address(memeFactory), _streamId);
-    //     memeFactory.transferLock(_pair, address(_jose));
-    //     address ownerOfStream = sablier.ownerOf(_streamId);
-    //     assertTrue(ownerOfStream == address(_jose));
-    //     vm.stopPrank();
+        sablier.approve(address(memeFactory), _streamId);
+        memeFactory.transferLock(_pair, address(_jose));
+        address ownerOfStream = sablier.ownerOf(_streamId);
+        assertTrue(ownerOfStream == address(_jose));
+        vm.stopPrank();
 
-    //     vm.startPrank(_jose);
-    //     uint256 withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
-    //     memeFactory.unlockLiquidityTokens(_pair, address(_jose));
-    //     assertTrue(
-    //         IERC20(_pair).balanceOf(address(_jose)) == withdrawableAmount
-    //     );
+        vm.startPrank(_jose);
+        uint256 withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
+        memeFactory.unlockLiquidityTokens(_pair, address(_jose));
+        assertTrue(
+            IERC20(_pair).balanceOf(address(_jose)) == withdrawableAmount
+        );
 
-    //     LockupLinear.Stream memory stream = sablier.getStream(_streamId);
-    //     assertEq(stream.isDepleted, true);
-    //     assertTrue(stream.amounts.withdrawn == withdrawableAmount);
-    //     withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
-    //     assertTrue(withdrawableAmount == 0);
+        LockupLinear.Stream memory stream = sablier.getStream(_streamId);
+        assertEq(stream.isDepleted, true);
+        assertTrue(stream.amounts.withdrawn == withdrawableAmount);
+        withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
+        assertTrue(withdrawableAmount == 0);
 
-    //     vm.stopPrank();
-    // }
+        vm.stopPrank();
+    }
 
     function test_ChangeLaunchFee_Withdraw_Owner() public {
         vm.startPrank(_owner);

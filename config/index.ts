@@ -5,7 +5,17 @@ type Config<T> = {
 };
 export const config: Config<bigint> = {
   slippage: { 43_113: BigInt("10000"), 43_114: BigInt("200") },
-};
+  minimumNative: {
+    43_113: BigInt("1000000000000000"),
+    43_114: BigInt("10000000000000000000"),
+  },
+  launchFeeUSDC: {
+    43_113: BigInt("1000000"),
+    43_114: BigInt("250000000"),
+  },
+  minimumLockDuration: { 43_113: BigInt("1"), 43_114: BigInt("90") },
+} as const;
+
 export const addresses: Config<string> = {
   teamMultiSig: {
     43_113: "0xCf00c1ac6D26d52054ec89bE6e093F2E270D61d9",
@@ -36,8 +46,7 @@ export const addresses: Config<string> = {
     43_114: "0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55",
   },
   sablier: {
-    // note: THIS IS INCORRECT
-    43_113: "0xB24B65E015620455bB41deAAd4e1902f1Be9805f",
+    43_113: "0xebf7ed508a0Bb1c4e66b9E6F8C6a73342E7049ac",
     43_114: "0xB24B65E015620455bB41deAAd4e1902f1Be9805f",
   },
   nonFungiblePositionManager: {

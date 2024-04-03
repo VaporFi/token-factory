@@ -2,7 +2,6 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { addresses, config } from "../config";
 import { MemeFactory } from "../typechain-types/index";
-const launchFee = "250000000";
 
 const func: DeployFunction = async function ({
   getNamedAccounts,
@@ -22,9 +21,9 @@ const func: DeployFunction = async function ({
     vaporDexAdapter: addresses.vaporDexAggregatorAdapter[chainId],
     usdc: addresses.usdc[chainId],
     vape: addresses.vape[chainId],
-    launchFee: launchFee,
-    minLiquidityETH: BigInt(100000000),
-    minLockDuration: 2,
+    launchFee: config.launchFeeUSDC[chainId],
+    minLiquidityETH: config.minimumNative[chainId],
+    minLockDuration: config.minimumLockDuration[chainId],
     sablier: addresses.sablier[chainId],
     nonFungiblePositionManager: addresses.nonFungiblePositionManager[chainId],
     teamMultisig: addresses.teamMultiSig[chainId],
