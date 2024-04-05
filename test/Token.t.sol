@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {MemeFactoryTest, IERC20, Test} from "./MemeFactory.t.sol";
+import {TokenFactoryTest, IERC20, Test} from "./TokenFactory.t.sol";
 import {IDexAggregator} from "../contracts/interfaces/IDexAggregator.sol";
 import "forge-std/console.sol";
 import {IStratosphere} from "../contracts/interfaces/IStratosphere.sol";
 import {Token__NonStratosphereNFTHolder, Token__TradingNotStarted, Token__ExceedsMaximumHolding} from "../contracts/Token.sol";
 
-contract TokenTest is MemeFactoryTest {
+contract TokenTest is TokenFactoryTest {
     IERC20 public token;
     IERC20 public pair;
     IDexAggregator public dexAggregator = IDexAggregator(_vaporDexAggregator);

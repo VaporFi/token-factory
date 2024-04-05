@@ -2,7 +2,7 @@
 pragma solidity ^0.8.22;
 
 import "forge-std/Test.sol";
-import "contracts/MemeFactory.sol";
+import "contracts/TokenFactory.sol";
 import {ISablierV2LockupLinear} from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
 import {ERC20Mock} from "./mocks/ERC20Mock.sol";
@@ -11,7 +11,7 @@ import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
 import {IUniswapV3PoolState} from "./interfaces/IUniswapV3PoolState.sol";
 
 contract MemeFactoryTest is Test {
-    MemeFactory memeFactory;
+    TokenFactory memeFactory;
     address _owner = makeAddr("owner");
     address _teamMultiSig = makeAddr("teamMultiSig");
     address _router = 0x19C0FC4562A4b76F27f86c676eF5a7e38D12a20d;
@@ -46,7 +46,7 @@ contract MemeFactoryTest is Test {
         vm.deal(_hitesh, 10000000 ether);
         vm.deal(_roy, 10000000 ether);
         vm.startPrank(_owner);
-        MemeFactory.DeployArgs memory args = MemeFactory.DeployArgs({
+        TokenFactory.DeployArgs memory args = TokenFactory.DeployArgs({
             owner: _owner,
             routerAddress: _router,
             stratosphereAddress: _stratosphere,
@@ -62,7 +62,7 @@ contract MemeFactoryTest is Test {
             teamMultisig: address(_teamMultiSig),
             slippage: slippage
         });
-        memeFactory = new MemeFactory(args);
+        memeFactory = new TokenFactory(args);
         vm.stopPrank();
     }
 

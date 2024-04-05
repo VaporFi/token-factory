@@ -29,12 +29,12 @@ error MemeFactory__TranferFailed(address);
 error MemeFactory__NotEnoughLiquidity();
 error MemeFactory__MinimumLockDuration();
 
-/// @title MemeFactory
+/// @title TokenFactory
 /// @author Roy & Jose
 /// @notice This contract is used to launch new tokens and create liquidity for them
 /// @dev Utilizes 'Sablier' for liquidity locking
 
-contract MemeFactory is Ownable {
+contract TokenFactory is Ownable {
     //////////////
     /// EVENTS ///
     //////////////
@@ -90,7 +90,7 @@ contract MemeFactory is Ownable {
     mapping(address => mapping(address => uint256)) private liquidityLocks;
 
     /**
-     * @dev MemeFactory constructor initializes the contract with required parameters.
+     * @dev TokenFactory constructor initializes the contract with required parameters.
      * @param owner Address of the contract owner.
      * @param routerAddress Address of the VaporDEXRouter contract.
      * @param stratosphereAddress Address of the Stratosphere contract.
