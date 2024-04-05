@@ -7,7 +7,8 @@
   "scripts": {
     "build": "hardhat compile",
     "clean": "hardhat clean",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "deploy:fuji": "hardhat deploy --network avalancheFuji --tags TokenFactory"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.1",

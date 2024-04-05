@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { addresses, config } from "../config";
-import { MemeFactory } from "../typechain-types/index";
+import { TokenFactory } from "../typechain-types/index";
 
 const func: DeployFunction = async function ({
   getNamedAccounts,
@@ -13,7 +13,7 @@ const func: DeployFunction = async function ({
   if (!chainId) {
     throw new Error("ChainId not found");
   }
-  const args: MemeFactory.DeployArgsStruct = {
+  const args: TokenFactory.DeployArgsStruct = {
     owner: addresses.teamMultiSig[chainId],
     routerAddress: addresses.vaporDexRouter[chainId],
     stratosphereAddress: addresses.stratosphereNFT[chainId],
@@ -32,10 +32,13 @@ const func: DeployFunction = async function ({
 
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
-  await deploy("MemeFactory", {
+  await deploy("TokenFactory", {
     from: deployer,
     args: [args],
     log: true,
   });
 };
+
 export default func;
+
+func.tags = ["TokenFactory"];
