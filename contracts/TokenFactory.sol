@@ -1,10 +1,3 @@
-// ███╗░░░███╗███████╗███╗░░░███╗███████╗  ███████╗░█████╗░░█████╗░████████╗░█████╗░██████╗░██╗░░░██╗
-// ████╗░████║██╔════╝████╗░████║██╔════╝  ██╔════╝██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗╚██╗░██╔╝
-// ██╔████╔██║█████╗░░██╔████╔██║█████╗░░  █████╗░░███████║██║░░╚═╝░░░██║░░░██║░░██║██████╔╝░╚████╔╝░
-// ██║╚██╔╝██║██╔══╝░░██║╚██╔╝██║██╔══╝░░  ██╔══╝░░██╔══██║██║░░██╗░░░██║░░░██║░░██║██╔══██╗░░╚██╔╝░░
-// ██║░╚═╝░██║███████╗██║░╚═╝░██║███████╗  ██║░░░░░██║░░██║╚█████╔╝░░░██║░░░╚█████╔╝██║░░██║░░░██║░░░
-// ╚═╝░░░░░╚═╝╚══════╝╚═╝░░░░░╚═╝╚══════╝  ╚═╝░░░░░╚═╝░░╚═╝░╚════╝░░░░╚═╝░░░░╚════╝░╚═╝░░╚═╝░░░╚═╝░░░
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
@@ -18,16 +11,16 @@ import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
 import {IDexAggregator} from "./interfaces/IDexAggregator.sol";
 import {INonfungiblePositionManager} from "./interfaces/INonfungiblePositionManager.sol";
 
-error MemeFactory__WrongConstructorArguments();
-error MemeFactory__LiquidityLockedOrDepleted();
-error MemeFactory__Unauthorized();
-error MemeFactory__ZeroAddress();
-error MemeFactory__WrongLaunchArguments();
-error MemeFactory__InsufficientBalance();
-error MemeFactory__Invalid();
-error MemeFactory__TranferFailed(address);
-error MemeFactory__NotEnoughLiquidity();
-error MemeFactory__MinimumLockDuration();
+error TokenFactory__WrongConstructorArguments();
+error TokenFactory__LiquidityLockedOrDepleted();
+error TokenFactory__Unauthorized();
+error TokenFactory__ZeroAddress();
+error TokenFactory__WrongLaunchArguments();
+error TokenFactory__InsufficientBalance();
+error TokenFactory__Invalid();
+error TokenFactory__TranferFailed(address);
+error TokenFactory__NotEnoughLiquidity();
+error TokenFactory__MinimumLockDuration();
 
 /// @title TokenFactory
 /// @author Roy & Jose
@@ -141,7 +134,7 @@ contract TokenFactory is Ownable {
             args.minLiquidityETH == 0 ||
             args.minLockDuration == 0
         ) {
-            revert MemeFactory__WrongConstructorArguments();
+            revert TokenFactory__WrongConstructorArguments();
         }
 
         // Initialize variables
@@ -193,7 +186,7 @@ contract TokenFactory is Ownable {
     {
         uint256 value = msg.value;
         if (value < minLiquidityETH) {
-            revert MemeFactory__NotEnoughLiquidity();
+            revert TokenFactory__NotEnoughLiquidity();
         }
         // Step 0: Transfer Fee
         _transferLaunchFee(msg.sender);
@@ -228,7 +221,7 @@ contract TokenFactory is Ownable {
         // Step 3: Get the pair address
         _pair = IVaporDEXFactory(factory).getPair(_tokenAddress, address(WETH));
         if (_pair == address(0)) {
-            revert MemeFactory__ZeroAddress();
+            revert TokenFactory__ZeroAddress();
         }
         // Step 4: Set the LP address in the token
         _token.setLiquidityPool(_pair);
@@ -249,7 +242,7 @@ contract TokenFactory is Ownable {
             );
         } else {
             if (lockDuration < minLockDuration) {
-                revert MemeFactory__MinimumLockDuration();
+                revert TokenFactory__MinimumLockDuration();
             }
             _lpToken.approve(
                 address(sablier),
@@ -297,17 +290,17 @@ contract TokenFactory is Ownable {
      */
     function unlockLiquidityTokens(address _pair, address _receiver) external {
         if (_receiver == address(0)) {
-            revert MemeFactory__ZeroAddress();
+            revert TokenFactory__ZeroAddress();
         }
         uint256 streamId = liquidityLocks[msg.sender][_pair];
 
         if (streamId == 0) {
-            revert MemeFactory__Unauthorized();
+            revert TokenFactory__Unauthorized();
         }
 
         uint256 withdrawableAmount = sablier.withdrawableAmountOf(streamId);
         if (withdrawableAmount == 0) {
-            revert MemeFactory__LiquidityLockedOrDepleted();
+            revert TokenFactory__LiquidityLockedOrDepleted();
         }
 
         sablier.withdrawMax({streamId: streamId, to: _receiver}); // Other reverts are handled by Sablier
@@ -327,7 +320,7 @@ contract TokenFactory is Ownable {
             _to == address(0) ||
             sablier.isTransferable(streamId) == false
         ) {
-            revert MemeFactory__Unauthorized();
+            revert TokenFactory__Unauthorized();
         }
 
         liquidityLocks[_to][_pair] = streamId;
@@ -345,7 +338,7 @@ contract TokenFactory is Ownable {
 
     function setMinimumLiquidityETH(uint256 _liquidity) external onlyOwner {
         if (_liquidity == 0) {
-            revert MemeFactory__Invalid();
+            revert TokenFactory__Invalid();
         }
         minLiquidityETH = _liquidity;
         emit MinimumLiquidityETHUpdated(_liquidity);
@@ -368,7 +361,7 @@ contract TokenFactory is Ownable {
 
     function setMinLockDuration(uint40 _lockDuration) external onlyOwner {
         if (_lockDuration == 0) {
-            revert MemeFactory__Invalid();
+            revert TokenFactory__Invalid();
         }
         minLockDuration = _lockDuration;
         emit MinimumLockDurationUpdated(_lockDuration);
@@ -381,7 +374,7 @@ contract TokenFactory is Ownable {
 
     function setLaunchFee(uint256 _launchFee) external onlyOwner {
         if (_launchFee == 0) {
-            revert MemeFactory__Invalid();
+            revert TokenFactory__Invalid();
         }
         launchFee = _launchFee;
         emit LaunchFeeUpdated(_launchFee);
@@ -397,7 +390,7 @@ contract TokenFactory is Ownable {
             _vaporDexAdapter == vaporDexAdapter ||
             _vaporDexAdapter == address(0)
         ) {
-            revert MemeFactory__Invalid();
+            revert TokenFactory__Invalid();
         }
         vaporDexAdapter = _vaporDexAdapter;
         emit VaporDEXAdapterUpdated(_vaporDexAdapter);
@@ -410,7 +403,7 @@ contract TokenFactory is Ownable {
 
     function withdrawFee(address _to) external onlyOwner {
         if (_to == address(0)) {
-            revert MemeFactory__ZeroAddress();
+            revert TokenFactory__ZeroAddress();
         }
         IERC20 _usdc = IERC20(USDC);
         _usdc.transfer(_to, _usdc.balanceOf(address(this)));
@@ -436,7 +429,7 @@ contract TokenFactory is Ownable {
         address dexAdapter
     ) internal returns (Token _token) {
         if (totalSupply == 0 || _tradingStartsAt < block.timestamp + 2 days) {
-            revert MemeFactory__WrongLaunchArguments();
+            revert TokenFactory__WrongLaunchArguments();
         }
         _token = new Token(
             name,
@@ -458,11 +451,11 @@ contract TokenFactory is Ownable {
     function _transferLaunchFee(address _from) internal {
         IERC20 _usdc = IERC20(USDC);
         if (_usdc.balanceOf(_from) < launchFee) {
-            revert MemeFactory__InsufficientBalance();
+            revert TokenFactory__InsufficientBalance();
         }
         bool isSuccess = _usdc.transferFrom(_from, address(this), launchFee);
         if (!isSuccess) {
-            revert MemeFactory__TranferFailed(_from);
+            revert TokenFactory__TranferFailed(_from);
         }
     }
 

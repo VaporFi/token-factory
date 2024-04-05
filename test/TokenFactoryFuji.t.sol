@@ -10,7 +10,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
 import {IUniswapV3PoolState} from "./interfaces/IUniswapV3PoolState.sol";
 
-contract MemeFactoryTest is Test {
+contract TokenFactoryTest is Test {
     TokenFactory memeFactory;
     address _owner = makeAddr("owner");
     address _teamMultiSig = makeAddr("teamMultiSig");
