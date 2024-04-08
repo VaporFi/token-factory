@@ -659,4 +659,10 @@ contract TokenFactory is Ownable {
     ) external view returns (uint256) {
         return liquidityLocks[_owner][_pair];
     }
+
+    function getTokenLaunch(
+        uint256 _tokenLaunchId
+    ) external view returns (TokenLaunch memory) {
+        return tokenLaunches[_tokenLaunchId];
+    }
 }
