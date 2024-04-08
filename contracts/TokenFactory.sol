@@ -57,7 +57,11 @@ contract TokenFactory is Ownable {
     event MinimumLiquidityETHUpdated(uint256 _newFee);
     event MinimumLockDurationUpdated(uint40 _newFee);
     event VaporDEXAdapterUpdated(address _newAdapter);
-    event AccumulatedFeesWithdrawn(address _to, uint256 _amount);
+    event EmergencyWithdraw(
+        address indexed _token,
+        uint256 indexed _amount,
+        address indexed _to
+    );
 
     ///////////////
     /// STORAGE ///
@@ -397,17 +401,22 @@ contract TokenFactory is Ownable {
     }
 
     /**
-     * @dev Withdraws any remaining USDC fees to the specified address.
-     * @param _to Address to which the remaining fees are withdrawn.
+     * @dev Withdraws any stuck tokens (LP Or USDC) to the specified address.
+     * @param _token Address of the token to be withdrawn.
+     * @param _to Address to which the tokens are withdrawn.
      */
 
-    function withdrawFee(address _to) external onlyOwner {
-        if (_to == address(0)) {
+    function emergencyWithdraw(address _token, address _to) external onlyOwner {
+        if (_to == address(0) || _token == address(0)) {
             revert TokenFactory__ZeroAddress();
         }
-        IERC20 _usdc = IERC20(USDC);
-        _usdc.transfer(_to, _usdc.balanceOf(address(this)));
-        emit AccumulatedFeesWithdrawn(_to, _usdc.balanceOf(address(this)));
+        IERC20 token = IERC20(_token);
+        uint256 balance = token.balanceOf(address(this));
+        if (balance == 0) {
+            revert TokenFactory__InsufficientBalance();
+        }
+        token.transfer(_to, balance);
+        emit EmergencyWithdraw(_token, token.balanceOf(address(this)), _to);
     }
 
     /**
@@ -492,8 +501,8 @@ contract TokenFactory is Ownable {
         uint256 amountInVAPE = VAPE.balanceOf(address(this));
         USDC.approve(address(nonFungiblePositionManager), amountInUSDC);
         VAPE.approve(address(nonFungiblePositionManager), amountInVAPE);
-        INonfungiblePositionManager.MintParams memory mintParams = INonfungiblePositionManager
-            .MintParams({
+        INonfungiblePositionManager.MintParams
+            memory mintParams = INonfungiblePositionManager.MintParams({
                 token0: address(VAPE),
                 token1: address(USDC),
                 fee: 3000,
