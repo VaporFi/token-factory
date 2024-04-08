@@ -57,7 +57,11 @@ contract TokenFactory is Ownable {
     event MinimumLiquidityETHUpdated(uint256 _newFee);
     event MinimumLockDurationUpdated(uint40 _newFee);
     event VaporDEXAdapterUpdated(address _newAdapter);
-    event AccumulatedTokenWithdrawn(address _to, uint256 _amount);
+    event EmergencyWithdraw(
+        address indexed _token,
+        uint256 indexed _amount,
+        address indexed _to
+    );
 
     ///////////////
     /// STORAGE ///
@@ -402,7 +406,7 @@ contract TokenFactory is Ownable {
      * @param _to Address to which the tokens are withdrawn.
      */
 
-    function withdraw(address _token, address _to) external onlyOwner {
+    function emergencyWithdraw(address _token, address _to) external onlyOwner {
         if (_to == address(0) || _token == address(0)) {
             revert TokenFactory__ZeroAddress();
         }
@@ -412,7 +416,7 @@ contract TokenFactory is Ownable {
             revert TokenFactory__InsufficientBalance();
         }
         token.transfer(_to, balance);
-        emit AccumulatedTokenWithdrawn(_to, token.balanceOf(address(this)));
+        emit EmergencyWithdraw(_token, token.balanceOf(address(this)), _to);
     }
 
     /**
