@@ -34,11 +34,15 @@ contract TokenFactory is Ownable {
 
     event TokenLaunched(
         address indexed _tokenAddress,
-        address indexed _pairAddress,
-        bool _liquidityBurned
+        address indexed _creatorAddress,
+        uint256 indexed _tokenId
     );
 
-    event StreamCreated(uint256 indexed _streamId);
+    event StreamCreated(
+        uint256 indexed _streamId,
+        address indexed _sender,
+        address indexed _pair
+    );
     event LiquidityBurned(
         address indexed pair,
         address indexed _burner,
@@ -80,6 +84,20 @@ contract TokenFactory is Ownable {
     uint256 public minLiquidityETH;
     uint256 public slippage;
     uint40 public minLockDuration;
+    uint256 public tokenCounter;
+
+    struct TokenLaunch {
+        string name;
+        string symbol;
+        uint256 tradingStartsAt;
+        uint256 streamId;
+        address tokenAddress;
+        address pairAddress;
+        address creatorAddress;
+        bool isLiquidityBurned;
+    }
+
+    mapping(uint256 => TokenLaunch) public tokenLaunches;
 
     // Sablier
     ISablierV2LockupLinear private immutable sablier;
@@ -188,8 +206,7 @@ contract TokenFactory is Ownable {
         payable
         returns (address _pair, address _tokenAddress, uint256 streamId)
     {
-        uint256 value = msg.value;
-        if (value < minLiquidityETH) {
+        if (msg.value < minLiquidityETH) {
             revert TokenFactory__NotEnoughLiquidity();
         }
         // Step 0: Transfer Fee
@@ -214,16 +231,16 @@ contract TokenFactory is Ownable {
 
         // Step 2: Add Liquidity
         IVaporDEXRouter _router = IVaporDEXRouter(router);
-        _router.addLiquidityETH{value: value}(
+        _router.addLiquidityETH{value: msg.value}(
             _tokenAddress,
             _totalSupply,
             _totalSupply,
-            value,
+            msg.value,
             address(this),
             block.timestamp + 10 minutes
         );
         // Step 3: Get the pair address
-        _pair = IVaporDEXFactory(factory).getPair(_tokenAddress, address(WETH));
+        _pair = _factory.getPair(_tokenAddress, address(WETH));
         if (_pair == address(0)) {
             revert TokenFactory__ZeroAddress();
         }
@@ -272,7 +289,7 @@ contract TokenFactory is Ownable {
             streamId = sablier.createWithDurations(params);
             liquidityLocks[msg.sender][_pair] = streamId;
 
-            emit StreamCreated(streamId);
+            emit StreamCreated(streamId, msg.sender, _pair);
         }
 
         // Step 7: Buy VAPE with USDC on VaporDEXAggregator
@@ -283,7 +300,20 @@ contract TokenFactory is Ownable {
 
         _addLiquidityVapeUsdc(); // Uses the balance of VAPE and USDC in the contract
 
-        emit TokenLaunched(_tokenAddress, _pair, _burnLiquidity);
+        // Step 9: Store the token launch
+        emit TokenLaunched(_tokenAddress, msg.sender, tokenCounter);
+
+        tokenLaunches[tokenCounter] = TokenLaunch(
+            _name,
+            _symbol,
+            _tradingStartsAt,
+            streamId,
+            _tokenAddress,
+            _pair,
+            msg.sender,
+            _burnLiquidity
+        );
+        tokenCounter++;
     }
 
     /**
@@ -637,5 +667,11 @@ contract TokenFactory is Ownable {
         address _owner
     ) external view returns (uint256) {
         return liquidityLocks[_owner][_pair];
+    }
+
+    function getTokenLaunch(
+        uint256 _tokenLaunchId
+    ) external view returns (TokenLaunch memory) {
+        return tokenLaunches[_tokenLaunchId];
     }
 }
