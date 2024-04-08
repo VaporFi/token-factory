@@ -38,7 +38,11 @@ contract TokenFactory is Ownable {
         uint256 indexed _tokenId
     );
 
-    event StreamCreated(uint256 indexed _streamId);
+    event StreamCreated(
+        uint256 indexed _streamId,
+        address indexed _sender,
+        address indexed _pair
+    );
     event LiquidityBurned(
         address indexed pair,
         address indexed _burner,
@@ -82,6 +86,7 @@ contract TokenFactory is Ownable {
         string name;
         string symbol;
         uint256 tradingStartsAt;
+        uint256 streamId;
         address tokenAddress;
         address pairAddress;
         address creatorAddress;
@@ -280,7 +285,7 @@ contract TokenFactory is Ownable {
             streamId = sablier.createWithDurations(params);
             liquidityLocks[msg.sender][_pair] = streamId;
 
-            emit StreamCreated(streamId);
+            emit StreamCreated(streamId, msg.sender, _pair);
         }
 
         // Step 7: Buy VAPE with USDC on VaporDEXAggregator
@@ -298,6 +303,7 @@ contract TokenFactory is Ownable {
             _name,
             _symbol,
             _tradingStartsAt,
+            streamId,
             _tokenAddress,
             _pair,
             msg.sender,
