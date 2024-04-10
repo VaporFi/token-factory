@@ -86,18 +86,8 @@ contract TokenFactory is Ownable {
     uint40 public minLockDuration;
     uint256 public tokenCounter;
 
-    struct TokenLaunch {
-        string name;
-        string symbol;
-        uint256 tradingStartsAt;
-        uint256 streamId;
-        address tokenAddress;
-        address pairAddress;
-        address creatorAddress;
-        bool isLiquidityBurned;
-    }
-
-    mapping(uint256 => TokenLaunch) public tokenLaunches;
+    mapping(address => uint256[]) private addressToCounters;
+    mapping(uint256 => address) private counterToAddress;
 
     // Sablier
     ISablierV2LockupLinear private immutable sablier;
@@ -303,16 +293,10 @@ contract TokenFactory is Ownable {
         // Step 9: Store the token launch
         emit TokenLaunched(_tokenAddress, msg.sender, tokenCounter);
 
-        tokenLaunches[tokenCounter] = TokenLaunch(
-            _name,
-            _symbol,
-            _tradingStartsAt,
-            streamId,
-            _tokenAddress,
-            _pair,
-            msg.sender,
-            _burnLiquidity
-        );
+
+        // Step 10: Store the token launch for FETCH
+        addressToCounters[msg.sender].push(tokenCounter);
+        counterToAddress[tokenCounter] = msg.sender;
         tokenCounter++;
     }
 
@@ -669,9 +653,25 @@ contract TokenFactory is Ownable {
         return liquidityLocks[_owner][_pair];
     }
 
+    /**
+     * @dev Retrieves the token launch information for a given owner.
+     * @param _owner The address of the owner.
+     * @return An array of uint256 values representing the token launches.
+     */
     function getTokenLaunch(
-        uint256 _tokenLaunchId
-    ) external view returns (TokenLaunch memory) {
-        return tokenLaunches[_tokenLaunchId];
+        address _owner
+    ) external view returns (uint256[] memory) {
+        return addressToCounters[_owner];
+    }
+
+    /**
+     * @dev Retrieves the address associated with a given counter.
+     * @param _counter The counter value.
+     * @return The token address associated with the counter.
+     */
+    function getCounterToAddress(
+        uint256 _counter
+    ) external view returns (address) {
+        return counterToAddress[_counter];
     }
 }
