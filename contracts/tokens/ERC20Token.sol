@@ -4,15 +4,15 @@ pragma solidity ^0.8.22;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IStratosphere} from "./interfaces/IStratosphere.sol";
+import {IStratosphere} from "../interfaces/IStratosphere.sol";
 
-error Token__MissingLiquidityPool();
-error Token__ExceedsMaximumHolding();
-error Token__TradingNotStarted();
-error Token__NonStratosphereNFTHolder();
-error Token__BotDetected();
+error ERC20Token__MissingLiquidityPool();
+error ERC20Token__ExceedsMaximumHolding();
+error ERC20Token__TradingNotStarted();
+error ERC20Token__NonStratosphereNFTHolder();
+error ERC20Token__BotDetected();
 
-contract Token is ERC20, ERC20Permit, Ownable {
+contract ERC20Token is ERC20, ERC20Permit, Ownable {
     address public liquidityPool;
     address public immutable dexAggregator;
     address public immutable dexAdapter;
@@ -40,12 +40,12 @@ contract Token is ERC20, ERC20Permit, Ownable {
 
     function setLiquidityPool(address _liquidityPool) external onlyOwner {
         if (_liquidityPool == address(0)) {
-            revert Token__MissingLiquidityPool();
+            revert ERC20Token__MissingLiquidityPool();
         }
         liquidityPool = _liquidityPool;
     }
 
-   /// @dev Replacement for _beforeTokenTransfer() since OZ v5
+    /// @dev Replacement for _beforeTokenTransfer() since OZ v5
     function _update(
         address from,
         address to,
@@ -63,7 +63,7 @@ contract Token is ERC20, ERC20Permit, Ownable {
         }
 
         if (block.timestamp < _tradingStartsAt) {
-            revert Token__TradingNotStarted();
+            revert ERC20Token__TradingNotStarted();
         }
 
         uint256 _secondsSinceTradingStarted = block.timestamp -
@@ -75,8 +75,11 @@ contract Token is ERC20, ERC20Permit, Ownable {
 
         if (_secondsSinceTradingStarted < 1 hours) {
             _enforceAntiWhale(to, value);
-            if (!(_isStratosphereMemberOrAdmin(from) && _isStratosphereMemberOrAdmin(to))) {
-                revert Token__NonStratosphereNFTHolder();
+            if (
+                !(_isStratosphereMemberOrAdmin(from) &&
+                    _isStratosphereMemberOrAdmin(to))
+            ) {
+                revert ERC20Token__NonStratosphereNFTHolder();
             }
         } else if (_secondsSinceTradingStarted < 24 hours) {
             _enforceAntiWhale(to, value);
@@ -87,14 +90,20 @@ contract Token is ERC20, ERC20Permit, Ownable {
         if (to != liquidityPool) {
             uint256 newBalance = balanceOf(to) + value;
             if (newBalance > maxHoldingAmount) {
-                revert Token__ExceedsMaximumHolding();
+                revert ERC20Token__ExceedsMaximumHolding();
             }
         }
     }
 
-    function _isStratosphereMemberOrAdmin(address _address) internal view returns (bool pass) {
-        if (_address == dexAggregator || _address == dexAdapter || stratosphere.tokenIdOf(_address) != 0 ||
-        _address == liquidityPool) {
+    function _isStratosphereMemberOrAdmin(
+        address _address
+    ) internal view returns (bool pass) {
+        if (
+            _address == dexAggregator ||
+            _address == dexAdapter ||
+            stratosphere.tokenIdOf(_address) != 0 ||
+            _address == liquidityPool
+        ) {
             pass = true;
         }
     }

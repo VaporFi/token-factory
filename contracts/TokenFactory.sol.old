@@ -5,7 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IVaporDEXFactory} from "./interfaces/IVaporDEXFactory.sol";
 import {IVaporDEXRouter} from "./interfaces/IVaporDEXRouter.sol";
-import {Token} from "./Token.sol";
+import {ERC20Token} from "./tokens/ERC20Token.sol";
 import {ISablierV2LockupLinear} from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
 import {IDexAggregator} from "./interfaces/IDexAggregator.sol";
