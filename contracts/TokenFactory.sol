@@ -655,12 +655,18 @@ contract TokenFactory is Ownable {
     /**
      * @dev Retrieves the token launch information for a given owner.
      * @param _owner The address of the owner.
-     * @return An array of uint256 values representing the token launches.
+     * @return An array of token addresses associated with the owner.
      */
-    function getTokenLaunch(
+    function getTokenLaunches(
         address _owner
-    ) external view returns (uint256[] memory) {
-        return addressToCounters[_owner];
+    ) external view returns (address[] memory) {
+        uint256[] memory _counters = addressToCounters[_owner];
+        address[] memory _tokenAddresses = new address[](_counters.length);
+        for (uint256 i = 0; i < _counters.length; i++) {
+            _tokenAddresses[i] = counterToTokenAddress[_counters[i]];
+        }
+
+        return _tokenAddresses;
     }
 
     /**
