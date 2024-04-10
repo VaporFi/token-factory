@@ -87,7 +87,7 @@ contract TokenFactory is Ownable {
     uint256 public tokenCounter;
 
     mapping(address => uint256[]) private addressToCounters;
-    mapping(uint256 => address) private counterToAddress;
+    mapping(uint256 => address) private counterToTokenAddress;
 
     // Sablier
     ISablierV2LockupLinear private immutable sablier;
@@ -293,10 +293,9 @@ contract TokenFactory is Ownable {
         // Step 9: Store the token launch
         emit TokenLaunched(_tokenAddress, msg.sender, tokenCounter);
 
-
         // Step 10: Store the token launch for FETCH
         addressToCounters[msg.sender].push(tokenCounter);
-        counterToAddress[tokenCounter] = msg.sender;
+        counterToTokenAddress[tokenCounter] = msg.sender;
         tokenCounter++;
     }
 
@@ -669,9 +668,9 @@ contract TokenFactory is Ownable {
      * @param _counter The counter value.
      * @return The token address associated with the counter.
      */
-    function getCounterToAddress(
+    function getCounterToTokenAddress(
         uint256 _counter
     ) external view returns (address) {
-        return counterToAddress[_counter];
+        return counterToTokenAddress[_counter];
     }
 }
