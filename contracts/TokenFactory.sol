@@ -91,7 +91,7 @@ contract TokenFactory is Ownable {
 
     // Sablier
     ISablierV2LockupLinear private immutable sablier;
-    // Mapping to store the streamId for each pair and lp owner
+    // Liquidity Locks
     mapping(address => mapping(address => uint256)) private liquidityLocks;
 
     /**
@@ -277,7 +277,7 @@ contract TokenFactory is Ownable {
 
             // Create the stream
             streamId = sablier.createWithDurations(params);
-            liquidityLocks[msg.sender][_pair] = streamId;
+            liquidityLocks[msg.sender][_tokenAddress] = streamId;
 
             emit StreamCreated(streamId, msg.sender, _pair);
         }
@@ -301,15 +301,18 @@ contract TokenFactory is Ownable {
 
     /**
      * @dev Unlocks liquidity tokens for the specified pair and recipient.
-     * @param _pair Address of the token pair.
+     * @param _tokenAddress Address of the token pair.
      * @param _receiver Address of the recipient of unlocked tokens.
      * @notice It is recommended to direct the user to Sablier UI for better error handling.
      */
-    function unlockLiquidityTokens(address _pair, address _receiver) external {
+    function unlockLiquidityTokens(
+        address _tokenAddress,
+        address _receiver
+    ) external {
         if (_receiver == address(0)) {
             revert TokenFactory__ZeroAddress();
         }
-        uint256 streamId = liquidityLocks[msg.sender][_pair];
+        uint256 streamId = liquidityLocks[msg.sender][_tokenAddress];
 
         if (streamId == 0) {
             revert TokenFactory__Unauthorized();
@@ -322,16 +325,16 @@ contract TokenFactory is Ownable {
 
         sablier.withdrawMax({streamId: streamId, to: _receiver}); // Other reverts are handled by Sablier
 
-        emit LiquidityTokensUnlocked(_pair, _receiver);
+        emit LiquidityTokensUnlocked(_tokenAddress, _receiver);
     }
 
     /**
      * @dev Transfers the locked liquidity to the specified recipient for the given pair.
-     * @param _pair Address of the token pair.
+     * @param _tokenAddress Address of the token pair.
      * @param _to Address of the recipient.
      */
-    function transferLock(address _pair, address _to) external {
-        uint256 streamId = liquidityLocks[msg.sender][_pair];
+    function transferLock(address _tokenAddress, address _to) external {
+        uint256 streamId = liquidityLocks[msg.sender][_tokenAddress];
         if (
             streamId == 0 ||
             _to == address(0) ||
@@ -340,12 +343,12 @@ contract TokenFactory is Ownable {
             revert TokenFactory__Unauthorized();
         }
 
-        liquidityLocks[_to][_pair] = streamId;
-        liquidityLocks[msg.sender][_pair] = 0;
+        liquidityLocks[_to][_tokenAddress] = streamId;
+        liquidityLocks[msg.sender][_tokenAddress] = 0;
 
         sablier.transferFrom({from: msg.sender, to: _to, tokenId: streamId}); // Other reverts are handled by Sablier
 
-        emit LiquidityTransferred(_pair, _to);
+        emit LiquidityTransferred(_tokenAddress, _to);
     }
 
     /**
@@ -461,7 +464,8 @@ contract TokenFactory is Ownable {
             address(this),
             _tradingStartsAt,
             dexAggregator,
-            dexAdapter
+            dexAdapter,
+            msg.sender
         );
     }
 
@@ -639,17 +643,17 @@ contract TokenFactory is Ownable {
     }
 
     /**
-     * @dev Returns the liquidity lock for the specified pair and owner.
-     * @param _pair Address of the token pair.
+     * @dev Returns the liquidity lock for the specified token and owner.
+     * @param _tokenAddress Address of the token.
      * @param _owner Address of the owner.
      * @return uint256 Stream ID for the liquidity lock.
      */
 
     function getLiquidityLock(
-        address _pair,
+        address _tokenAddress,
         address _owner
     ) external view returns (uint256) {
-        return liquidityLocks[_owner][_pair];
+        return liquidityLocks[_owner][_tokenAddress];
     }
 
     /**
@@ -678,5 +682,35 @@ contract TokenFactory is Ownable {
         uint256 _counter
     ) external view returns (address) {
         return counterToTokenAddress[_counter];
+    }
+
+    /**
+     * @dev Retrieves the details of a token.
+     * @param _token The address of the token.
+     * @return deployer The address of the token's deployer.
+     * @return tokenAddress The address of the token.
+     * @return liquidityPool The address of the token's liquidity pool.
+     * @return tradingStartsAt The timestamp when trading starts for the token.
+     * @return streamId The stream ID associated with the token's liquidity lock. Returns 0 if burned.
+     */
+    function getTokenDetails(
+        address _token
+    )
+        public
+        view
+        returns (
+            address deployer,
+            address tokenAddress,
+            address liquidityPool,
+            uint256 tradingStartsAt,
+            uint256 streamId
+        )
+    {
+        Token token = Token(_token);
+        deployer = token.deployer();
+        tokenAddress = address(token);
+        liquidityPool = token.liquidityPool();
+        tradingStartsAt = token.tradingStartsAt();
+        streamId = liquidityLocks[deployer][tokenAddress];
     }
 }
