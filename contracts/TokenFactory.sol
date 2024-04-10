@@ -295,7 +295,7 @@ contract TokenFactory is Ownable {
 
         // Step 10: Store the token launch for FETCH
         addressToCounters[msg.sender].push(tokenCounter);
-        counterToTokenAddress[tokenCounter] = msg.sender;
+        counterToTokenAddress[tokenCounter] = _tokenAddress;
         tokenCounter++;
     }
 
