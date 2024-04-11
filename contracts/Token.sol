@@ -13,6 +13,7 @@ error Token__NonStratosphereNFTHolder();
 error Token__BotDetected();
 
 contract Token is ERC20, ERC20Permit, Ownable {
+    address public deployer;
     address public liquidityPool;
     address public immutable dexAggregator;
     address public immutable dexAdapter;
@@ -28,7 +29,8 @@ contract Token is ERC20, ERC20Permit, Ownable {
         address _owner,
         uint256 _tradingStartsAt,
         address _dexAggregator,
-        address _dexAdapter
+        address _dexAdapter,
+        address _deployer
     ) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(_owner) {
         stratosphere = IStratosphere(_stratosphereAddress);
         _mint(msg.sender, _supply);
@@ -36,6 +38,7 @@ contract Token is ERC20, ERC20Permit, Ownable {
         tradingStartsAt = _tradingStartsAt;
         dexAggregator = _dexAggregator;
         dexAdapter = _dexAdapter;
+        deployer = _deployer;
     }
 
     function setLiquidityPool(address _liquidityPool) external onlyOwner {
@@ -45,7 +48,7 @@ contract Token is ERC20, ERC20Permit, Ownable {
         liquidityPool = _liquidityPool;
     }
 
-   /// @dev Replacement for _beforeTokenTransfer() since OZ v5
+    /// @dev Replacement for _beforeTokenTransfer() since OZ v5
     function _update(
         address from,
         address to,
@@ -75,7 +78,10 @@ contract Token is ERC20, ERC20Permit, Ownable {
 
         if (_secondsSinceTradingStarted < 1 hours) {
             _enforceAntiWhale(to, value);
-            if (!(_isStratosphereMemberOrAdmin(from) && _isStratosphereMemberOrAdmin(to))) {
+            if (
+                !(_isStratosphereMemberOrAdmin(from) &&
+                    _isStratosphereMemberOrAdmin(to))
+            ) {
                 revert Token__NonStratosphereNFTHolder();
             }
         } else if (_secondsSinceTradingStarted < 24 hours) {
@@ -92,9 +98,15 @@ contract Token is ERC20, ERC20Permit, Ownable {
         }
     }
 
-    function _isStratosphereMemberOrAdmin(address _address) internal view returns (bool pass) {
-        if (_address == dexAggregator || _address == dexAdapter || stratosphere.tokenIdOf(_address) != 0 ||
-        _address == liquidityPool) {
+    function _isStratosphereMemberOrAdmin(
+        address _address
+    ) internal view returns (bool pass) {
+        if (
+            _address == dexAggregator ||
+            _address == dexAdapter ||
+            stratosphere.tokenIdOf(_address) != 0 ||
+            _address == liquidityPool
+        ) {
             pass = true;
         }
     }
