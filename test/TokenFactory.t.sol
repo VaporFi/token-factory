@@ -110,6 +110,7 @@ contract TokenFactoryTest is Test {
     function test_LaunchWithLPBurn() public {
         vm.startPrank(_user);
         uint256 vapeUsdcPoolLiquidityBeforeLaunch = _vapeUsdcPool.liquidity();
+
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             true,
@@ -185,7 +186,7 @@ contract TokenFactoryTest is Test {
     function test_LPUnlock() public {
         vm.startPrank(_user);
         uint40 lockDuration = minlockDuration + 1;
-        (address _pair, , uint256 _streamId) = _launch(
+        (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             false,
             minimumLiquidityETH,
@@ -205,7 +206,7 @@ contract TokenFactoryTest is Test {
         uint256 withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
         assertTrue(withdrawableAmount > 0);
 
-        tokenFactory.unlockLiquidityTokens(_pair, address(_user));
+        tokenFactory.unlockLiquidityTokens(_tokenAddress, address(_user));
         assertTrue(
             IERC20(_pair).balanceOf(address(_user)) == withdrawableAmount
         );
@@ -222,7 +223,7 @@ contract TokenFactoryTest is Test {
 
     function test_LPTransfer_BeforeUnlock() public {
         vm.startPrank(_user);
-        (address _pair, , uint256 _streamId) = _launch(
+        (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             false,
             minimumLiquidityETH,
@@ -236,7 +237,7 @@ contract TokenFactoryTest is Test {
         assertTrue(sablier.withdrawableAmountOf(_streamId) == 0);
 
         sablier.approve(address(tokenFactory), _streamId);
-        tokenFactory.transferLock(_pair, address(_jose));
+        tokenFactory.transferLock(_tokenAddress, address(_jose));
         address ownerOfStream = sablier.ownerOf(_streamId);
         assertTrue(ownerOfStream == address(_jose));
 
@@ -251,7 +252,7 @@ contract TokenFactoryTest is Test {
     function test_LPTransfer_AfterUnlock() public {
         vm.startPrank(_user);
         uint40 lockDuration = minlockDuration + 1;
-        (address _pair, , uint256 _streamId) = _launch(
+        (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             false,
             minimumLiquidityETH,
@@ -261,14 +262,14 @@ contract TokenFactoryTest is Test {
         vm.warp(block.timestamp + lockDuration * 1 days);
 
         sablier.approve(address(tokenFactory), _streamId);
-        tokenFactory.transferLock(_pair, address(_jose));
+        tokenFactory.transferLock(_tokenAddress, address(_jose));
         address ownerOfStream = sablier.ownerOf(_streamId);
         assertTrue(ownerOfStream == address(_jose));
         vm.stopPrank();
 
         vm.startPrank(_jose);
         uint256 withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
-        tokenFactory.unlockLiquidityTokens(_pair, address(_jose));
+        tokenFactory.unlockLiquidityTokens(_tokenAddress, address(_jose));
         assertTrue(
             IERC20(_pair).balanceOf(address(_jose)) == withdrawableAmount
         );
