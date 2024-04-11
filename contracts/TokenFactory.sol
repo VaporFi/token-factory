@@ -292,7 +292,7 @@ contract TokenFactory is Ownable {
         // Step 9: Store the token launch for FETCHING
         userToTokens[msg.sender].push(_tokenAddress);
 
-        // Step 10: Store the token launch
+        // Step 10: Emit TokenLaunched event
         emit TokenLaunched(_tokenAddress, msg.sender, streamId);
     }
 
