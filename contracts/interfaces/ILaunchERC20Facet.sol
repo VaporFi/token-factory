@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.22;
 
-interface ILaunchFacet {
+interface ILaunchERC20Facet {
     //////////////
     /// EVENTS ///
     //////////////
@@ -10,7 +10,7 @@ interface ILaunchFacet {
     event TokenLaunched(
         address indexed _tokenAddress,
         address indexed _creatorAddress,
-        uint256 indexed _tokenId
+        uint256 indexed _streamId
     );
 
     event StreamCreated(

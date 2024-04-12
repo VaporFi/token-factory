@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {TokenFactoryTest, IERC20, Test} from "./TokenFactory.t.sol";
+import {TokenFactoryTest, IERC20} from "./TokenFactory.t.sol";
 import {IDexAggregator} from "../contracts/interfaces/IDexAggregator.sol";
 import "forge-std/console.sol";
 import {IStratosphere} from "../contracts/interfaces/IStratosphere.sol";
-import {Token__NonStratosphereNFTHolder, Token__TradingNotStarted, Token__ExceedsMaximumHolding} from "../contracts/Token.sol";
+import {ERC20Token__NonStratosphereNFTHolder, ERC20Token__TradingNotStarted, ERC20Token__ExceedsMaximumHolding} from "../contracts/tokens/ERC20Token.sol";
 
 contract TokenTest is TokenFactoryTest {
     IERC20 public token;

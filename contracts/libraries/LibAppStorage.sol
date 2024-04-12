@@ -4,17 +4,6 @@ pragma solidity ^0.8.23;
 import {LibDiamond} from "../libraries/LibDiamond.sol";
 import {LibAuthorizable} from "./LibAuthorizable.sol";
 
-struct TokenLaunch {
-    string name;
-    string symbol;
-    uint256 tradingStartsAt;
-    uint256 streamId;
-    address tokenAddress;
-    address pairAddress;
-    address creatorAddress;
-    bool isLiquidityBurned;
-}
-
 struct AppStorage {
     /////////////////////
     /// AUTHORIZATION ///
@@ -23,11 +12,11 @@ struct AppStorage {
     ////////////////////////
     /// ERC20LaunchFacet ///
     ////////////////////////
-    address VaporDEXFactory;
-    address VaporDEXRouter;
-    address Stratosphere;
-    address VaporDEXAggregator;
-    address VaporDEXAdapter;
+    address vaporDEXFactory;
+    address vaporDEXRouter;
+    address stratosphere;
+    address vaporDEXAggregator;
+    address vaporDEXAdapter;
     address USDC;
     address VAPE;
     address WETH;
@@ -39,7 +28,7 @@ struct AppStorage {
     uint256 slippage;
     uint256 tokenLaunchesCount;
     uint40 minLockDuration;
-    mapping(uint256 => TokenLaunch) tokenLaunches;
+    mapping(address => address[]) userToTokens;
     mapping(address => mapping(address => uint256)) liquidityLocks;
 }
 

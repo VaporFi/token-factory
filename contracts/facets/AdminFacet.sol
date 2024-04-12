@@ -3,6 +3,7 @@ pragma solidity ^0.8.22;
 
 import {AppStorage, Modifiers} from "../libraries/LibAppStorage.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Token} from "../interfaces/IERC20Token.sol";
 
 error AdminFacet__Invalid();
 error AdminFacet__ZeroAddress();
@@ -71,12 +72,12 @@ contract AdminFacet is Modifiers {
 
     function setVaporDEXAdapter(address _vaporDexAdapter) external onlyOwner {
         if (
-            _vaporDexAdapter == s.VaporDEXAdapter ||
+            _vaporDexAdapter == s.vaporDEXAdapter ||
             _vaporDexAdapter == address(0)
         ) {
             revert AdminFacet__Invalid();
         }
-        s.VaporDEXAdapter = _vaporDexAdapter;
+        s.vaporDEXAdapter = _vaporDexAdapter;
         emit VaporDEXAdapterUpdated(_vaporDexAdapter);
     }
 
@@ -92,5 +93,54 @@ contract AdminFacet is Modifiers {
         IERC20 _usdc = IERC20(s.USDC);
         _usdc.transfer(_to, _usdc.balanceOf(address(this)));
         emit AccumulatedFeesWithdrawn(_to, _usdc.balanceOf(address(this)));
+    }
+
+    /**
+     * @dev Retrieves the token launch information for a given owner.
+     * @param _owner The address of the owner.
+     * @return An array of token addresses associated with the owner.
+     */
+    function getTokenLaunches(
+        address _owner
+    ) external view returns (address[] memory) {
+        return s.userToTokens[_owner];
+    }
+
+    /**
+     * @dev Retrieves the details of a token.
+     * @param _token The address of the token.
+     * @return deployer The address of the token's deployer.
+     * @return tokenAddress The address of the token.
+     * @return liquidityPool The address of the token's liquidity pool.
+     * @return tradingStartsAt The timestamp when trading starts for the token.
+     * @return streamId The stream ID associated with the token's liquidity lock. Returns 0 if burned.
+     */
+    function getTokenDetails(
+        address _token
+    )
+        public
+        view
+        returns (
+            address deployer,
+            address tokenAddress,
+            address liquidityPool,
+            uint256 tradingStartsAt,
+            uint256 streamId
+        )
+    {
+        IERC20Token token = IERC20Token(_token);
+        deployer = token.deployer();
+        tokenAddress = address(token);
+        liquidityPool = token.liquidityPool();
+        tradingStartsAt = token.tradingStartsAt();
+        streamId = s.liquidityLocks[deployer][tokenAddress];
+    }
+
+    function getLaunchFee() external view returns (uint256) {
+        return s.launchFee;
+    }
+
+    function getVaporDEXAdapter() external view returns (address) {
+        return s.vaporDEXAdapter;
     }
 }

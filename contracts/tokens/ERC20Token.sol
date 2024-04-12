@@ -13,6 +13,7 @@ error ERC20Token__NonStratosphereNFTHolder();
 error ERC20Token__BotDetected();
 
 contract ERC20Token is ERC20, ERC20Permit, Ownable {
+    address public deployer;
     address public liquidityPool;
     address public immutable dexAggregator;
     address public immutable dexAdapter;
@@ -28,7 +29,8 @@ contract ERC20Token is ERC20, ERC20Permit, Ownable {
         address _owner,
         uint256 _tradingStartsAt,
         address _dexAggregator,
-        address _dexAdapter
+        address _dexAdapter,
+        address _deployer
     ) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(_owner) {
         stratosphere = IStratosphere(_stratosphereAddress);
         _mint(msg.sender, _supply);
@@ -36,6 +38,7 @@ contract ERC20Token is ERC20, ERC20Permit, Ownable {
         tradingStartsAt = _tradingStartsAt;
         dexAggregator = _dexAggregator;
         dexAdapter = _dexAdapter;
+        deployer = _deployer;
     }
 
     function setLiquidityPool(address _liquidityPool) external onlyOwner {

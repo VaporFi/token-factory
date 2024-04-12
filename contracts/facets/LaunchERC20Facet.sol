@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import {ILaunchFacet} from "../interfaces/ILaunchFacet.sol";
-import {AppStorage, TokenLaunch} from "../libraries/LibAppStorage.sol";
+import {ILaunchERC20Facet} from "../interfaces/ILaunchERC20Facet.sol";
+import {AppStorage} from "../libraries/LibAppStorage.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IVaporDEXFactory} from "../interfaces/IVaporDEXFactory.sol";
 import {IVaporDEXRouter} from "../interfaces/IVaporDEXRouter.sol";
@@ -14,14 +14,14 @@ import {INonfungiblePositionManager} from "../interfaces/INonfungiblePositionMan
 import {LibPercentages} from "../libraries/LibPercentages.sol";
 import {ERC20Token} from "../tokens/ERC20Token.sol";
 
-error LaunchFacet__NotEnoughLiquidity();
-error LaunchFacet__InsufficientBalance();
-error LaunchFacet__TranferFailed(address _from);
-error LaunchFacet__ZeroAddress();
-error LaunchFacet__MinimumLockDuration();
-error LaunchFacet__WrongLaunchArguments();
+error LaunchERC20Facet__NotEnoughLiquidity();
+error LaunchERC20Facet__InsufficientBalance();
+error LaunchERC20Facet__TranferFailed(address _from);
+error LaunchERC20Facet__ZeroAddress();
+error LaunchERC20Facet__MinimumLockDuration();
+error LaunchERC20Facet__WrongLaunchArguments();
 
-contract LaunchFacet is ILaunchFacet {
+contract LaunchERC20Facet is ILaunchERC20Facet {
     AppStorage s;
 
     function launchERC20(
@@ -37,7 +37,7 @@ contract LaunchFacet is ILaunchFacet {
         returns (address _pair, address _tokenAddress, uint256 streamId)
     {
         if (msg.value < s.minLiquidityETH) {
-            revert LaunchFacet__NotEnoughLiquidity();
+            revert LaunchERC20Facet__NotEnoughLiquidity();
         }
 
         // Step 0: Transfer Fee
@@ -49,19 +49,19 @@ contract LaunchFacet is ILaunchFacet {
             _symbol,
             _totalSupply,
             _tradingStartsAt,
-            s.VaporDEXAggregator,
-            s.VaporDEXAdapter
+            s.vaporDEXAggregator,
+            s.vaporDEXAdapter
         );
         IERC20Token _token = IERC20Token(_tokenAddress);
 
         // Step 2: Create the pair
-        IVaporDEXFactory _factory = IVaporDEXFactory(s.VaporDEXFactory);
+        IVaporDEXFactory _factory = IVaporDEXFactory(s.vaporDEXFactory);
         _pair = _factory.createPair(_tokenAddress, address(s.WETH));
-        _token.approve(s.VaporDEXRouter, _totalSupply);
+        _token.approve(s.vaporDEXRouter, _totalSupply);
         _token.approve(_pair, _totalSupply);
 
         // Step 3: Add Liquidity
-        IVaporDEXRouter _router = IVaporDEXRouter(s.VaporDEXRouter);
+        IVaporDEXRouter _router = IVaporDEXRouter(s.vaporDEXRouter);
         _router.addLiquidityETH{value: msg.value}(
             _tokenAddress,
             _totalSupply,
@@ -74,7 +74,7 @@ contract LaunchFacet is ILaunchFacet {
         // Step 4: Get the pair address
         _pair = _factory.getPair(_tokenAddress, address(s.WETH));
         if (_pair == address(0)) {
-            revert LaunchFacet__ZeroAddress();
+            revert LaunchERC20Facet__ZeroAddress();
         }
 
         // Step 5: Set the LP address in the token
@@ -95,7 +95,7 @@ contract LaunchFacet is ILaunchFacet {
             );
         } else {
             if (lockDuration < s.minLockDuration) {
-                revert LaunchFacet__MinimumLockDuration();
+                revert LaunchERC20Facet__MinimumLockDuration();
             }
             _lpToken.approve(
                 address(s.sablier),
@@ -121,7 +121,7 @@ contract LaunchFacet is ILaunchFacet {
             streamId = ISablierV2LockupLinear(s.sablier).createWithDurations(
                 params
             );
-            s.liquidityLocks[msg.sender][_pair] = streamId;
+            s.liquidityLocks[msg.sender][_tokenAddress] = streamId;
 
             emit StreamCreated(streamId, msg.sender, _pair);
         }
@@ -132,20 +132,9 @@ contract LaunchFacet is ILaunchFacet {
         // Step 8: Add Liquidity on VAPE/USDC Pair VaporDEXV2
         _addLiquidityVapeUsdc(); // Uses the balance of VAPE and USDC in the contract
 
-        // Step 9: Store the token launch
-        emit TokenLaunched(_tokenAddress, msg.sender, s.tokenLaunchesCount);
-
-        s.tokenLaunches[s.tokenLaunchesCount] = TokenLaunch(
-            _name,
-            _symbol,
-            _tradingStartsAt,
-            streamId,
-            _tokenAddress,
-            _pair,
-            msg.sender,
-            _burnLiquidity
-        );
-        s.tokenLaunchesCount++;
+        // Step 9: Store the token launch for FETCHING
+        s.userToTokens[msg.sender].push(_tokenAddress);
+        emit TokenLaunched(_tokenAddress, msg.sender, streamId);
     }
 
     /**
@@ -167,18 +156,19 @@ contract LaunchFacet is ILaunchFacet {
         address dexAdapter
     ) internal returns (address _token) {
         if (totalSupply == 0 || _tradingStartsAt < block.timestamp + 2 days) {
-            revert LaunchFacet__WrongLaunchArguments();
+            revert LaunchERC20Facet__WrongLaunchArguments();
         }
         _token = address(
             new ERC20Token(
                 name,
                 symbol,
                 totalSupply,
-                s.Stratosphere,
+                s.stratosphere,
                 address(this),
                 _tradingStartsAt,
                 dexAggregator,
-                dexAdapter
+                dexAdapter,
+                msg.sender
             )
         );
     }
@@ -191,11 +181,11 @@ contract LaunchFacet is ILaunchFacet {
     function _transferLaunchFee(address _from) internal {
         IERC20 _usdc = IERC20(s.USDC);
         if (_usdc.balanceOf(_from) < s.launchFee) {
-            revert LaunchFacet__InsufficientBalance();
+            revert LaunchERC20Facet__InsufficientBalance();
         }
         bool isSuccess = _usdc.transferFrom(_from, address(this), s.launchFee);
         if (!isSuccess) {
-            revert LaunchFacet__TranferFailed(_from);
+            revert LaunchERC20Facet__TranferFailed(_from);
         }
     }
 
@@ -205,10 +195,10 @@ contract LaunchFacet is ILaunchFacet {
      */
 
     function _buyVapeWithUsdc(uint256 amountIn) internal {
-        IERC20(s.USDC).approve(address(s.VaporDEXAggregator), amountIn);
+        IERC20(s.USDC).approve(address(s.vaporDEXAggregator), amountIn);
 
         IDexAggregator.FormattedOffer memory offer = IDexAggregator(
-            s.VaporDEXAggregator
+            s.vaporDEXAggregator
         ).findBestPath(
                 amountIn,
                 address(s.USDC),
@@ -220,7 +210,7 @@ contract LaunchFacet is ILaunchFacet {
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
         trade.adapters = offer.adapters;
-        IDexAggregator(s.VaporDEXAggregator).swapNoSplit(
+        IDexAggregator(s.vaporDEXAggregator).swapNoSplit(
             trade,
             address(this),
             0
@@ -237,7 +227,10 @@ contract LaunchFacet is ILaunchFacet {
         address _vape = s.VAPE;
         uint256 amountInUSDC = IERC20(_usdc).balanceOf(address(this));
         uint256 amountInVAPE = IERC20(_vape).balanceOf(address(this));
-        IERC20(_usdc).approve(address(s.VaporDEXRouter), amountInUSDC);
+        IERC20(_usdc).approve(
+            address(s.nonFungiblePositionManager),
+            amountInUSDC
+        );
         IERC20(_vape).approve(
             address(s.nonFungiblePositionManager),
             amountInVAPE
