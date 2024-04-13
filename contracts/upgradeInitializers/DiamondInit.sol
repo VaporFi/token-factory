@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.25;
 
 /******************************************************************************\
 * Author: Nick Mudge <nick@perfectabstractions.com> (https://twitter.com/mudgen)
@@ -35,9 +35,10 @@ contract DiamondInit {
      * @param vaporDexAdapter Address of the VaporDEX adapter.
      * @param usdc Address of the USDC token.
      * @param vape Address of the VAPE token.
+     * @param weth Address of the WETH token.
      * @param launchFee Launch fee in USDC.
-     * @param uint256 minLiquidityETH;
-     * @param uint40 minLockDuration;
+     * @param minLiquidityETH Minimum liquidity in ETH.
+     * @param minLockDuration Minimum lock duration in seconds.
      * @param sablier Address of the Sablier contract.
      * @param nonFungiblePositionManager Uni v3 NFT Position Manager
      * @param teamMultisig Multisig address

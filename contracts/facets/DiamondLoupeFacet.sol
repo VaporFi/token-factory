@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.25;
 
 import {IDiamondLoupe} from "../interfaces/IDiamondLoupe.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";

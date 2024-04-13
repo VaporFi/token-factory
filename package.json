@@ -8,18 +8,22 @@
     "build": "hardhat compile",
     "clean": "hardhat clean",
     "test": "hardhat test",
-    "deploy:fuji": "hardhat deploy --network avalancheFuji --tags TokenFactory"
+    "deploy:fuji": "hardhat run --network avalancheFuji scripts/deploy/index.ts"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.1",
     "@prb/math": "^4.0.2",
     "@sablier/v2-core": "^1.1.2",
-    "@sablier/v2-periphery": "^1.1.1"
+    "@sablier/v2-periphery": "^1.1.1",
+    "@uniswap/v2-core": "^1.0.1",
+    "@uniswap/v2-periphery": "1.1.0-beta.0"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "abitype": "^1.0.2",
     "dotenv": "^16.3.1",
     "ds-test": "github:dapphub/ds-test",
+    "ethers": "6.6.2",
     "forge-std": "github:foundry-rs/forge-std#v1",
     "hardhat": "^2.19.3",
     "hardhat-deploy": "^0.11.45"

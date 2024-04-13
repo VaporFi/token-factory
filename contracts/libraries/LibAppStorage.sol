@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.25;
 
 import {LibDiamond} from "../libraries/LibDiamond.sol";
 import {LibAuthorizable} from "./LibAuthorizable.sol";
@@ -30,6 +30,9 @@ struct AppStorage {
     uint40 minLockDuration;
     mapping(address => address[]) userToTokens;
     mapping(address => mapping(address => uint256)) liquidityLocks;
+    ///////////////////////////////
+    /// BondingCurveLaunchFacet ///
+    ///////////////////////////////
 }
 
 library LibAppStorage {
