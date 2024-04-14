@@ -98,7 +98,7 @@ contract AdminFacet is Modifiers {
             revert AdminFacet__InsufficientBalance();
         }
         token.transfer(_to, balance);
-        emit EmergencyWithdraw(_token, token.balanceOf(address(this)), _to);
+        emit EmergencyWithdraw(_token, balance, _to);
     }
 
     /**
