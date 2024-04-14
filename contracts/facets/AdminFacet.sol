@@ -7,6 +7,7 @@ import {IERC20Token} from "../interfaces/IERC20Token.sol";
 
 error AdminFacet__Invalid();
 error AdminFacet__ZeroAddress();
+error AdminFacet__InsufficientBalance();
 
 contract AdminFacet is Modifiers {
     event MinimumLiquidityETHUpdated(uint256 _liquidity);
@@ -14,7 +15,7 @@ contract AdminFacet is Modifiers {
     event MinimumLockDurationUpdated(uint40 _lockDuration);
     event LaunchFeeUpdated(uint256 _launchFee);
     event VaporDEXAdapterUpdated(address _vaporDexAdapter);
-    event AccumulatedFeesWithdrawn(address _to, uint256 _amount);
+    event EmergencyWithdraw(address indexed _token, uint256 indexed _balance, address _to);
 
     /**
      * @dev Sets the minimum liquidity for creating new tokens.
@@ -81,18 +82,23 @@ contract AdminFacet is Modifiers {
         emit VaporDEXAdapterUpdated(_vaporDexAdapter);
     }
 
-    /**
-     * @dev Withdraws any remaining USDC fees to the specified address.
-     * @param _to Address to which the remaining fees are withdrawn.
+     /**
+     * @dev Withdraws any stuck tokens (LP Or USDC) to the specified address.
+     * @param _token Address of the token to be withdrawn.
+     * @param _to Address to which the tokens are withdrawn.
      */
 
-    function withdrawFee(address _to) external onlyOwner {
-        if (_to == address(0)) {
+    function emergencyWithdraw(address _token, address _to) external onlyOwner {
+        if (_to == address(0) || _token == address(0)) {
             revert AdminFacet__ZeroAddress();
         }
-        IERC20 _usdc = IERC20(s.USDC);
-        _usdc.transfer(_to, _usdc.balanceOf(address(this)));
-        emit AccumulatedFeesWithdrawn(_to, _usdc.balanceOf(address(this)));
+        IERC20 token = IERC20(_token);
+        uint256 balance = token.balanceOf(address(this));
+        if (balance == 0) {
+            revert AdminFacet__InsufficientBalance();
+        }
+        token.transfer(_to, balance);
+        emit EmergencyWithdraw(_token, token.balanceOf(address(this)), _to);
     }
 
     /**
