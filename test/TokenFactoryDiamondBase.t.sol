@@ -123,7 +123,7 @@ contract TokenFactoryDiamondBaseTest is Test {
         functionSelectors[2] = AdminFacet.setMinLockDuration.selector;
         functionSelectors[3] = AdminFacet.setLaunchFee.selector;
         functionSelectors[4] = AdminFacet.setVaporDEXAdapter.selector;
-        functionSelectors[5] = AdminFacet.withdrawFee.selector;
+        functionSelectors[5] = AdminFacet.emergencyWithdraw.selector;
         functionSelectors[6] = AdminFacet.getLaunchFee.selector;
         functionSelectors[7] = AdminFacet.getVaporDEXAdapter.selector;
         _cut.push(
