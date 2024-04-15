@@ -128,6 +128,7 @@ contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
     function test_LaunchWithLPBurn() public {
         vm.startPrank(_user);
         uint256 vapeUsdcPoolLiquidityBeforeLaunch = _vapeUsdcPool.liquidity();
+
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
             block.timestamp + 2 days,
             true,
