@@ -16,3 +16,4 @@ node_modules
 # Foundry files
 /cache_forge
 /out
+.DS_Store

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import "forge-std/Test.sol";
-import "contracts/TokenFactory.sol";
 import {ISablierV2LockupLinear} from "@sablier/v2-core/src/interfaces/ISablierV2LockupLinear.sol";
 import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
 import {ERC20Mock} from "./mocks/ERC20Mock.sol";
@@ -10,15 +8,27 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LockupLinear} from "@sablier/v2-core/src/types/DataTypes.sol";
 import {IUniswapV3PoolState} from "./interfaces/IUniswapV3PoolState.sol";
 
-contract TokenFactoryTest is Test {
-    TokenFactory tokenFactory;
-    address _owner = makeAddr("owner");
+import {TokenFactoryDiamondBaseTest} from "./TokenFactoryDiamondBase.t.sol";
+import {TokenFactoryDiamond} from "contracts/TokenFactoryDiamond.sol";
+import {DiamondInit} from "contracts/upgradeInitializers/DiamondInit.sol";
+import {AdminFacet} from "contracts/facets/AdminFacet.sol";
+import {LaunchERC20Facet} from "contracts/facets/LaunchERC20Facet.sol";
+import {LiquidityLockFacet} from "contracts/facets/LiquidityLockFacet.sol";
+
+contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
+    TokenFactoryDiamond tokenFactory;
+    AdminFacet internal adminFacet;
+    LaunchERC20Facet internal launchFacet;
+    LiquidityLockFacet internal liquidityLockFacet;
+
     address _teamMultiSig = makeAddr("teamMultiSig");
     address _router = 0x19C0FC4562A4b76F27f86c676eF5a7e38D12a20d;
+    address _factory = 0xC009a670E2B02e21E7e75AE98e254F467f7ae257;
     address _stratosphere = 0x08e287adCf9BF6773a87e1a278aa9042BEF44b60;
     address _vaporDexAggregator = 0x55477d8537ede381784b448876AfAa98aa450E63;
     address _vaporDexAdapter = 0x01e5C45cB25E30860c2Fb80369A9C27628911a2b;
     address _vape = 0x7bddaF6DbAB30224AA2116c4291521C7a60D5f55;
+    address _weth = 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7;
     address _liquidityPositionManager =
         0xC967b23826DdAB00d9AAd3702CbF5261B7Ed9a3a;
     IERC20 _usdc = IERC20(0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E); // real USDC
@@ -41,28 +51,36 @@ contract TokenFactoryTest is Test {
 
     function setUp() public {
         vm.createSelectFork("https://api.avax.network/ext/bc/C/rpc");
+
         vm.deal(_user, 10000000 ether);
         vm.deal(_jose, 10000000 ether);
         vm.deal(_hitesh, 10000000 ether);
         vm.deal(_roy, 10000000 ether);
-        vm.startPrank(_owner);
-        TokenFactory.DeployArgs memory args = TokenFactory.DeployArgs({
-            owner: _owner,
-            routerAddress: _router,
-            stratosphereAddress: _stratosphere,
-            vaporDexAggregator: _vaporDexAggregator,
-            vaporDexAdapter: _vaporDexAdapter,
-            usdc: address(_usdc),
-            vape: _vape,
-            launchFee: launchFee,
-            minLiquidityETH: minimumLiquidityETH,
-            minLockDuration: minlockDuration,
-            sablier: address(sablier),
-            nonFungiblePositionManager: _liquidityPositionManager,
-            teamMultisig: address(_teamMultiSig),
-            slippage: slippage
-        });
-        tokenFactory = new TokenFactory(args);
+
+        vm.startPrank(_diamondOwner);
+
+        DiamondInit.DeployArgs memory _initArgs;
+        _initArgs.routerAddress = _router;
+        _initArgs.factoryAddress = _factory;
+        _initArgs.stratosphereAddress = _stratosphere;
+        _initArgs.vaporDexAggregator = _vaporDexAggregator;
+        _initArgs.vaporDexAdapter = _vaporDexAdapter;
+        _initArgs.vape = _vape;
+        _initArgs.usdc = address(_usdc);
+        _initArgs.weth = _weth;
+        _initArgs.launchFee = launchFee;
+        _initArgs.minLiquidityETH = minimumLiquidityETH;
+        _initArgs.minLockDuration = minlockDuration;
+        _initArgs.sablier = address(sablier);
+        _initArgs.nonFungiblePositionManager = _liquidityPositionManager;
+        _initArgs.teamMultisig = _teamMultiSig;
+        _initArgs.slippage = slippage;
+
+        tokenFactory = createDiamond(_initArgs);
+        adminFacet = AdminFacet(address(tokenFactory));
+        launchFacet = LaunchERC20Facet(address(tokenFactory));
+        liquidityLockFacet = LiquidityLockFacet(address(tokenFactory));
+
         vm.stopPrank();
     }
 
@@ -76,12 +94,12 @@ contract TokenFactoryTest is Test {
 
     function test_Revert_MinimumLiquidityETH() public {
         vm.startPrank(_user);
-        uint256 launchFeeContract = tokenFactory.getLaunchFee();
+        uint256 launchFeeContract = adminFacet.getLaunchFee();
         _usdc.approve(address(tokenFactory), launchFeeContract);
 
         vm.expectRevert();
 
-        tokenFactory.launch{value: minimumLiquidityETH - 1}(
+        launchFacet.launchERC20{value: minimumLiquidityETH - 1}(
             "Test Token",
             "TEST",
             1_000_000 ether,
@@ -96,14 +114,14 @@ contract TokenFactoryTest is Test {
     function test_Revert_SetMinimumLiquidityETH() public {
         vm.startPrank(_user);
         vm.expectRevert();
-        tokenFactory.setMinimumLiquidityETH(3 ether);
+        adminFacet.setMinimumLiquidityETH(3 ether);
         vm.stopPrank();
     }
 
     function test_Revert_SetMinimumLockDuration() public {
         vm.startPrank(_user);
         vm.expectRevert();
-        tokenFactory.setMinLockDuration(30);
+        adminFacet.setMinLockDuration(30);
         vm.stopPrank();
     }
 
@@ -123,9 +141,14 @@ contract TokenFactoryTest is Test {
         // Pair and Token Checks
         assertTrue(_pair != address(0), "Pair address is zero");
         assertTrue(_tokenAddress != address(0), "Token address is zero");
-        assertTrue(IERC20(_pair).balanceOf(address(0)) > minimumLiquidity);
         assertTrue(
-            vapeUsdcPoolLiquidityAfterLaunch > vapeUsdcPoolLiquidityBeforeLaunch
+            IERC20(_pair).balanceOf(address(0)) > minimumLiquidity,
+            "Pair balance is zero"
+        );
+        assertTrue(
+            vapeUsdcPoolLiquidityAfterLaunch >
+                vapeUsdcPoolLiquidityBeforeLaunch,
+            "Liquidity not added to pool"
         );
 
         // Stream Checks
@@ -137,12 +160,12 @@ contract TokenFactoryTest is Test {
     function test_Revert_LaunchWithLPLock() public {
         vm.startPrank(_user);
 
-        uint256 launchFeeContract = tokenFactory.getLaunchFee();
+        uint256 launchFeeContract = adminFacet.getLaunchFee();
         _usdc.approve(address(tokenFactory), launchFeeContract);
 
         vm.expectRevert();
 
-        tokenFactory.launch{value: minimumLiquidityETH}(
+        launchFacet.launchERC20{value: minimumLiquidityETH}(
             "Test Token",
             "TEST",
             1_000_000 ether,
@@ -206,7 +229,7 @@ contract TokenFactoryTest is Test {
         uint256 withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
         assertTrue(withdrawableAmount > 0);
 
-        tokenFactory.unlockLiquidityTokens(_tokenAddress, address(_user));
+        liquidityLockFacet.unlockLiquidityTokens(_tokenAddress, address(_user));
         assertTrue(
             IERC20(_pair).balanceOf(address(_user)) == withdrawableAmount
         );
@@ -237,7 +260,7 @@ contract TokenFactoryTest is Test {
         assertTrue(sablier.withdrawableAmountOf(_streamId) == 0);
 
         sablier.approve(address(tokenFactory), _streamId);
-        tokenFactory.transferLock(_tokenAddress, address(_jose));
+        liquidityLockFacet.transferLock(_tokenAddress, address(_jose));
         address ownerOfStream = sablier.ownerOf(_streamId);
         assertTrue(ownerOfStream == address(_jose));
 
@@ -262,17 +285,15 @@ contract TokenFactoryTest is Test {
         vm.warp(block.timestamp + lockDuration * 1 days);
 
         sablier.approve(address(tokenFactory), _streamId);
-        tokenFactory.transferLock(_tokenAddress, address(_jose));
+        liquidityLockFacet.transferLock(_tokenAddress, _jose);
         address ownerOfStream = sablier.ownerOf(_streamId);
-        assertTrue(ownerOfStream == address(_jose));
+        assertTrue(ownerOfStream == _jose);
         vm.stopPrank();
 
         vm.startPrank(_jose);
         uint256 withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
-        tokenFactory.unlockLiquidityTokens(_tokenAddress, address(_jose));
-        assertTrue(
-            IERC20(_pair).balanceOf(address(_jose)) == withdrawableAmount
-        );
+        liquidityLockFacet.unlockLiquidityTokens(_tokenAddress, _jose);
+        assertTrue(IERC20(_pair).balanceOf(_jose) == withdrawableAmount);
 
         LockupLinear.Stream memory stream = sablier.getStream(_streamId);
         assertEq(stream.isDepleted, true);
@@ -284,34 +305,34 @@ contract TokenFactoryTest is Test {
     }
 
     function test_ChangeLaunchFee_Withdraw_Owner() public {
-        vm.startPrank(_owner);
-        assertEq(tokenFactory.getLaunchFee(), launchFee);
+        vm.startPrank(_diamondOwner);
+        assertEq(adminFacet.getLaunchFee(), launchFee);
         uint256 newLaunchFee = 500 * 1e6;
-        tokenFactory.setLaunchFee(newLaunchFee);
-        assertEq(tokenFactory.getLaunchFee(), newLaunchFee);
+        adminFacet.setLaunchFee(newLaunchFee);
+        assertEq(adminFacet.getLaunchFee(), newLaunchFee);
         vm.stopPrank();
     }
 
     function test_SetVaporDexAdapter_Owner() public {
-        vm.startPrank(_owner);
-        assertEq(tokenFactory.getVaporDEXAdapter(), _vaporDexAdapter);
+        vm.startPrank(_diamondOwner);
+        assertEq(adminFacet.getVaporDEXAdapter(), _vaporDexAdapter);
         address newAdapter = makeAddr("newAdapter");
-        tokenFactory.setVaporDEXAdapter(newAdapter);
-        assertEq(tokenFactory.getVaporDEXAdapter(), newAdapter);
+        adminFacet.setVaporDEXAdapter(newAdapter);
+        assertEq(adminFacet.getVaporDEXAdapter(), newAdapter);
         vm.stopPrank();
     }
 
     function test_Revert_ChangeLaunchFee_NotOwner() public {
         vm.startPrank(_user);
         vm.expectRevert();
-        tokenFactory.setLaunchFee(500 * 1e6);
+        adminFacet.setLaunchFee(500 * 1e6);
         vm.stopPrank();
     }
 
     function test_Revert_SetVaporDexAdapter_NotOwner() public {
         vm.startPrank(_user);
         vm.expectRevert();
-        tokenFactory.setVaporDEXAdapter(makeAddr("newAdapter"));
+        adminFacet.setVaporDEXAdapter(makeAddr("newAdapter"));
         vm.stopPrank();
     }
 
@@ -321,11 +342,11 @@ contract TokenFactoryTest is Test {
         uint256 value,
         uint40 lockDuration
     ) internal returns (address pair, address tokenAddress, uint256 streamId) {
-        uint256 launchFeeContract = tokenFactory.getLaunchFee();
+        uint256 launchFeeContract = adminFacet.getLaunchFee();
         _usdc.approve(address(tokenFactory), launchFeeContract);
 
-        (address _pair, address _tokenAddress, uint256 _streamId) = tokenFactory
-            .launch{value: value}(
+        (address _pair, address _tokenAddress, uint256 _streamId) = launchFacet
+            .launchERC20{value: value}(
             "Test Token",
             "TEST",
             1_000_000 ether,

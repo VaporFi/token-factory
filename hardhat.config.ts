@@ -1,10 +1,11 @@
 import "dotenv/config";
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import "hardhat-deploy";
+
+import "./tasks/verify";
 
 const deployerKey = process.env.DEPLOYER_KEY || "";
-const accounts = [deployerKey];
+const accounts = deployerKey ? [deployerKey] : [];
 
 const config: HardhatUserConfig = {
   etherscan: {
@@ -22,7 +23,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        network: "snowtrace",
+        network: "snowtrace-fuji",
         chainId: 43113,
         urls: {
           apiURL:
@@ -31,11 +32,6 @@ const config: HardhatUserConfig = {
         },
       },
     ],
-  },
-  namedAccounts: {
-    deployer: {
-      default: 0,
-    },
   },
   solidity: {
     version: "0.8.25",
