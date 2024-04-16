@@ -4,15 +4,18 @@ import {
   ZeroAddress,
   Fragment,
   FunctionFragment,
-} from 'ethers'
-import { ethers } from 'hardhat'
-import { IDiamondLoupe } from '../typechain-types'
+  Signer,
+} from "ethers";
+import { ethers } from "hardhat";
+import { IDiamondLoupe } from "../typechain-types";
+import Safe from "@safe-global/protocol-kit";
+import { MetaTransactionData } from "@safe-global/safe-core-sdk-types";
 
 export type FacetCut = {
-  facetAddress: string
-  action: number
-  functionSelectors: string[]
-}
+  facetAddress: string;
+  action: number;
+  functionSelectors: string[];
+};
 
 export enum FacetCutAction {
   Add = 0,
@@ -21,41 +24,48 @@ export enum FacetCutAction {
 }
 
 export function getSelectors(contract: BaseContract): string[] {
-  const selectors: string[] = []
+  const selectors: string[] = [];
   contract.interface.forEachFunction((func) => {
-    selectors.push(func.selector)
-  })
-  return selectors
+    selectors.push(func.selector);
+  });
+  return selectors;
 }
 
-export async function addOrReplaceFacets(
-  facets: BaseContract[],
-  diamondAddress: string,
-  initContract: string = ZeroAddress,
-  initData = '0x'
-): Promise<void> {
+export async function addOrReplaceFacets({
+  facets,
+  diamondAddress,
+  initContract = ZeroAddress,
+  initData = "0x",
+  safe,
+}: {
+  facets: BaseContract[];
+  diamondAddress: string;
+  initContract?: string;
+  initData?: string;
+  safe?: Safe;
+}): Promise<void> {
   const loupe = <IDiamondLoupe>(
-    await ethers.getContractAt('IDiamondLoupe', diamondAddress)
-  )
+    await ethers.getContractAt("IDiamondLoupe", diamondAddress)
+  );
 
-  const cut = []
+  const cut = [];
   for (const f of facets) {
-    const replaceSelectors = []
-    const addSelectors = []
-    const facetAddress = await f.getAddress()
+    const replaceSelectors = [];
+    const addSelectors = [];
+    const facetAddress = await f.getAddress();
 
-    const selectors = getSelectors(f)
+    const selectors = getSelectors(f);
 
     for (const s of selectors) {
-      const addr = await loupe.facetAddress(s.toString())
+      const addr = await loupe.facetAddress(s.toString());
 
       if (addr === ZeroAddress) {
-        addSelectors.push(s)
-        continue
+        addSelectors.push(s);
+        continue;
       }
 
       if (addr.toLowerCase() !== (await f.getAddress()).toLowerCase()) {
-        replaceSelectors.push(s)
+        replaceSelectors.push(s);
       }
     }
 
@@ -64,55 +74,55 @@ export async function addOrReplaceFacets(
         facetAddress,
         action: FacetCutAction.Replace,
         functionSelectors: replaceSelectors,
-      })
+      });
     }
     if (addSelectors.length) {
       cut.push({
         facetAddress,
         action: FacetCutAction.Add,
         functionSelectors: addSelectors,
-      })
+      });
     }
   }
 
   if (!cut.length) {
-    console.log('No facets to add or replace.')
-    return
+    console.log("No facets to add or replace.");
+    return;
   }
 
-  console.log('Adding/Replacing facet(s)...', diamondAddress, cut)
-  await doCut(diamondAddress, cut, initContract, initData)
+  console.log("Adding/Replacing facet(s)...", diamondAddress, cut);
+  await doCut(diamondAddress, cut, initContract, initData, safe);
 
-  console.log('Done.')
+  console.log("Done.");
 }
 
 export async function addFacets(
   facets: BaseContract[],
   diamondAddress: string,
   initContract: string = ZeroAddress,
-  initData = '0x'
+  initData = "0x"
 ): Promise<void> {
-  const cut = []
+  const cut = [];
   for (const f of facets) {
-    const selectors = getSelectors(f)
-    const facetAddress = await f.getAddress()
+    const selectors = getSelectors(f);
+    const facetAddress = await f.getAddress();
 
     cut.push({
       facetAddress,
       action: FacetCutAction.Add,
       functionSelectors: selectors,
-    })
+    });
   }
 
   if (!cut.length) {
-    console.log('No facets to add or replace.')
-    return
+    console.log("No facets to add or replace.");
+    return;
   }
 
-  console.log('Adding facet(s)...')
-  await doCut(diamondAddress, cut, initContract, initData)
+  console.log("Adding facet(s)...");
+  await doCut(diamondAddress, cut, initContract, initData);
 
-  console.log('Done.')
+  console.log("Done.");
 }
 
 export async function removeFacet(
@@ -125,21 +135,21 @@ export async function removeFacet(
       action: FacetCutAction.Remove,
       functionSelectors: selectors,
     },
-  ]
+  ];
 
-  console.log('Removing facet...')
-  await doCut(diamondAddress, cut, ZeroAddress, '0x')
+  console.log("Removing facet...");
+  await doCut(diamondAddress, cut, ZeroAddress, "0x");
 
-  console.log('Done.')
+  console.log("Done.");
 }
 
 export async function replaceFacet(
   facet: Contract,
   diamondAddress: string,
   initContract: string = ZeroAddress,
-  initData = '0x'
+  initData = "0x"
 ): Promise<void> {
-  const selectors = getSelectors(facet)
+  const selectors = getSelectors(facet);
 
   const cut = [
     {
@@ -147,32 +157,44 @@ export async function replaceFacet(
       action: FacetCutAction.Replace,
       functionSelectors: selectors,
     },
-  ]
+  ];
 
-  console.log('Replacing facet...')
-  await doCut(diamondAddress, cut, initContract, initData)
+  console.log("Replacing facet...");
+  await doCut(diamondAddress, cut, initContract, initData);
 
-  console.log('Done.')
+  console.log("Done.");
 }
 
 async function doCut(
   diamondAddress: string,
   cut: any[],
   initContract: string,
-  initData: string
+  initData: string,
+  safe?: Safe
 ): Promise<void> {
-  const cutter = await ethers.getContractAt('DiamondCutFacet', diamondAddress)
-  console.log('Cutting diamond...')
+  const cutter = await ethers.getContractAt("DiamondCutFacet", diamondAddress);
+  console.log("Cutting diamond...");
 
-  console.log(
-    '🚀 ~ file: diamond.ts:168 ~ cut, initContract, initData:',
-    cut,
-    initContract,
-    initData
-  )
-  const tx = await cutter.diamondCut(cut, initContract, initData)
-  const receipt = await tx.wait()
+  if (safe) {
+    const safeTransactionData: MetaTransactionData = {
+      data: cutter.interface.encodeFunctionData("diamondCut", [
+        cut,
+        initContract,
+        initData,
+      ]),
+      to: diamondAddress,
+      value: "0",
+    };
+    const safeTx = await safe.createTransaction({
+      transactions: [safeTransactionData],
+    });
+    await safe.signTransaction(safeTx);
+    return;
+  }
+
+  const tx = await cutter.diamondCut(cut, initContract, initData);
+  const receipt = await tx.wait();
   if (!receipt?.status) {
-    throw Error(`Diamond upgrade failed: ${tx.data}`)
+    throw Error(`Diamond upgrade failed: ${tx.data}`);
   }
 }

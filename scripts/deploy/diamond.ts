@@ -28,7 +28,7 @@ export const defaultArgs: DiamondInit.DeployArgsStruct = {
   slippage: config.slippage[chain],
 };
 
-export const FacetNames = getFacets();
+export const FacetNames = getFacets(["DiamondCutFacet"]);
 
 export async function deployDiamond(
   args: DiamondInit.DeployArgsStruct = defaultArgs
@@ -43,7 +43,7 @@ export async function deployDiamond(
     log: true,
     // skipIfAlreadyDeployed: true,
     useCreate3Factory: true,
-    salt: encodeBytes32String("VaporFi_TokenFactoryDiamond"),
+    salt: encodeBytes32String("VaporFi_TokenFactory"),
   });
   const diamondAddress = await diamond.getAddress();
 

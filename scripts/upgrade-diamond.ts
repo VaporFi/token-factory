@@ -19,7 +19,7 @@ async function main() {
   }
 
   // Do diamond cut
-  await addOrReplaceFacets(Facets, diamondAddress);
+  await addOrReplaceFacets({ facets: Facets, diamondAddress });
   console.log("✅ Diamond upgraded");
 }
 
