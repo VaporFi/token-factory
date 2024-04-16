@@ -1,5 +1,5 @@
 import { network } from "hardhat";
-import LiquidMiningDiamond from "../deployments/LiquidMiningDiamond.json";
+import TokenFactoryDiamond from "../deployments/TokenFactoryDiamond.json";
 import { deployContract } from "../utils/deployContract";
 import { addOrReplaceFacets } from "../utils/diamond";
 import getFacets from "../utils/getFacets";
@@ -7,15 +7,12 @@ import getFacets from "../utils/getFacets";
 async function main() {
   console.log("💎 Upgrading diamond");
   const diamondAddress =
-    LiquidMiningDiamond[network.name as keyof typeof LiquidMiningDiamond]
+    TokenFactoryDiamond[network.name as keyof typeof TokenFactoryDiamond]
       .address;
 
   // Deploy Facets
   const FacetNames = getFacets(["DiamondCutFacet", "DiamondLoupeFacet"]);
 
-  // const Facets = await Promise.all(
-  //   FacetNames.map((name) => deployContract(name))
-  // )
   const Facets = [];
   for (const name of FacetNames) {
     Facets.push(await deployContract(name));

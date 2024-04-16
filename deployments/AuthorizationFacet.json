@@ -80,5 +80,87 @@
       "salt": ""
     },
     "address": "0xDA9f756dFfa9Bc04f02E6a14638f5b0336BA2f57"
+  },
+  "avalanche": {
+    "artifact": {
+      "_format": "hh-sol-artifact-1",
+      "contractName": "AuthorizationFacet",
+      "sourceName": "contracts/facets/AuthorizationFacet.sol",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "owner",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "sender",
+              "type": "address"
+            }
+          ],
+          "name": "LibDiamond__OnlyOwner",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_address",
+              "type": "address"
+            }
+          ],
+          "name": "authorize",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_address",
+              "type": "address"
+            }
+          ],
+          "name": "authorized",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_address",
+              "type": "address"
+            }
+          ],
+          "name": "unAuthorize",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        }
+      ],
+      "bytecode": "0x6080604052348015600f57600080fd5b506102908061001f6000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80633bbbc7c914610046578063b6a5d7de1461005b578063b91816111461006e575b600080fd5b61005961005436600461021d565b6100bb565b005b61005961006936600461021d565b61010f565b6100a761007c36600461021d565b73ffffffffffffffffffffffffffffffffffffffff1660009081526020819052604090205460ff1690565b604051901515815260200160405180910390f35b6100c3610166565b73ffffffffffffffffffffffffffffffffffffffff16600090815260208190526040902080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00169055565b610117610166565b73ffffffffffffffffffffffffffffffffffffffff16600090815260208190526040902080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00166001179055565b7fc8fcad8db84d3cc18b4c41d551ea0ee66dd599cde068d998e57d5e09332c13205473ffffffffffffffffffffffffffffffffffffffff16331461021b577fc8fcad8db84d3cc18b4c41d551ea0ee66dd599cde068d998e57d5e09332c132054604080517f28803e4700000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff9092166004830152336024830152519081900360440190fd5b565b60006020828403121561022f57600080fd5b813573ffffffffffffffffffffffffffffffffffffffff8116811461025357600080fd5b939250505056fea2646970667358221220d7c028645cb6cae4cc5d20fb032f48a9f8714feb527c48af443c8cf4577f3b8564736f6c63430008190033",
+      "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100415760003560e01c80633bbbc7c914610046578063b6a5d7de1461005b578063b91816111461006e575b600080fd5b61005961005436600461021d565b6100bb565b005b61005961006936600461021d565b61010f565b6100a761007c36600461021d565b73ffffffffffffffffffffffffffffffffffffffff1660009081526020819052604090205460ff1690565b604051901515815260200160405180910390f35b6100c3610166565b73ffffffffffffffffffffffffffffffffffffffff16600090815260208190526040902080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00169055565b610117610166565b73ffffffffffffffffffffffffffffffffffffffff16600090815260208190526040902080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00166001179055565b7fc8fcad8db84d3cc18b4c41d551ea0ee66dd599cde068d998e57d5e09332c13205473ffffffffffffffffffffffffffffffffffffffff16331461021b577fc8fcad8db84d3cc18b4c41d551ea0ee66dd599cde068d998e57d5e09332c132054604080517f28803e4700000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff9092166004830152336024830152519081900360440190fd5b565b60006020828403121561022f57600080fd5b813573ffffffffffffffffffffffffffffffffffffffff8116811461025357600080fd5b939250505056fea2646970667358221220d7c028645cb6cae4cc5d20fb032f48a9f8714feb527c48af443c8cf4577f3b8564736f6c63430008190033",
+      "linkReferences": {},
+      "deployedLinkReferences": {}
+    },
+    "options": {
+      "args": [],
+      "log": true,
+      "skipIfAlreadyDeployed": true,
+      "useCreate3Factory": false,
+      "salt": ""
+    },
+    "address": "0x07b1549fB6692e0E6e2C406919d956E350d65731"
   }
 }

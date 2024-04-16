@@ -2,6 +2,8 @@ import "dotenv/config";
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 
+import "./tasks/verify";
+
 const deployerKey = process.env.DEPLOYER_KEY || "";
 const accounts = deployerKey ? [deployerKey] : [];
 
