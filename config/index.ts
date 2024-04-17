@@ -50,7 +50,7 @@ export const addresses: AddressMap = {
     avalanche: "0xC009a670E2B02e21E7e75AE98e254F467f7ae257",
   },
   stratosphereNFT: {
-    avalancheFuji: "0x65eB37AeB1F2a9cE39556F80044607dD969b0336",
+    avalancheFuji: "0x26b794235422e7c6f3ac6c717b10598C2a144203",
     avalanche: "0x08e287adCf9BF6773a87e1a278aa9042BEF44b60",
   },
   vaporDexAggregatorRouter: {

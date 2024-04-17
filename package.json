@@ -7,9 +7,11 @@
   "scripts": {
     "build": "hardhat compile",
     "clean": "hardhat clean",
-    "test": "hardhat test",
+    "deploy:avalanche": "hardhat run --network avalanche scripts/deploy/index.ts",
     "deploy:fuji": "hardhat run --network avalancheFuji scripts/deploy/index.ts",
-    "deploy:avalanche": "hardhat run --network avalanche scripts/deploy/index.ts"
+    "test": "hardhat test",
+    "upgrade:avalanche": "hardhat run --network avalanche scripts/upgrade-diamond-safe.ts",
+    "upgrade:fuji": "hardhat run --network avalancheFuji scripts/upgrade-diamond.ts"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.1",

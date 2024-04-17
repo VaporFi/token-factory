@@ -15,7 +15,11 @@ contract AdminFacet is Modifiers {
     event MinimumLockDurationUpdated(uint40 _lockDuration);
     event LaunchFeeUpdated(uint256 _launchFee);
     event VaporDEXAdapterUpdated(address _vaporDexAdapter);
-    event EmergencyWithdraw(address indexed _token, uint256 indexed _balance, address _to);
+    event EmergencyWithdraw(
+        address indexed _token,
+        uint256 indexed _balance,
+        address _to
+    );
 
     /**
      * @dev Sets the minimum liquidity for creating new tokens.
@@ -82,7 +86,7 @@ contract AdminFacet is Modifiers {
         emit VaporDEXAdapterUpdated(_vaporDexAdapter);
     }
 
-     /**
+    /**
      * @dev Withdraws any stuck tokens (LP Or USDC) to the specified address.
      * @param _token Address of the token to be withdrawn.
      * @param _to Address to which the tokens are withdrawn.
@@ -148,5 +152,13 @@ contract AdminFacet is Modifiers {
 
     function getVaporDEXAdapter() external view returns (address) {
         return s.vaporDEXAdapter;
+    }
+
+    /**
+     * @dev Sets the Stratosphere address as the admin of the TokenFactoryDiamond.
+     * @param _stratosphere The address of the Stratosphere NFT collection.
+     */
+    function setStratosphere(address _stratosphere) external onlyOwner {
+        s.stratosphere = _stratosphere;
     }
 }
