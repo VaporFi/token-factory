@@ -12,6 +12,7 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       snowtrace: "snowtrace",
+      snowtraceFuji: "snowtraceFuji",
     },
     customChains: [
       {
@@ -20,16 +21,16 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL:
             "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
-          browserURL: "https://avalanche.routescan.io",
+          browserURL: "https://snowtrace.dev/",
         },
       },
       {
-        network: "snowtrace-fuji",
+        network: "snowtraceFuji",
         chainId: 43113,
         urls: {
           apiURL:
-            "https://api.routescan.io/v2/network/fuji/evm/43113/etherscan",
-          browserURL: "https://cchain.explorer.avax-test.network",
+            "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan",
+          browserURL: "https://testnet.snowtrace.io/",
         },
       },
     ],
