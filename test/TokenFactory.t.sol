@@ -38,7 +38,7 @@ contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
         ISablierV2LockupLinear(0xB24B65E015620455bB41deAAd4e1902f1Be9805f);
     // Addresses that hold USDC on mainnet
     address _user = 0xB4a67CD735F27a31Bfda07656878f539193b7a63;
-    address _jose = 0x88Ca98958A97a139884D49336fbC8D588Fdb5Af1;
+    address _jose = 0x9f8c163cBA728e99993ABe7495F06c0A3c8Ac8b9;
     address _hitesh = 0xD20109cc6088B52EC8461f35c2D48dc88e10a971;
     address _roy = 0x9A9f01c11E03042E7763e9305f36FF18f0add81B;
 
@@ -87,7 +87,7 @@ contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
     function test_MinimumLiquidityETH() public {
         vm.startPrank(_user);
 
-        _launch(block.timestamp + 2 days, true, 11 ether, minlockDuration + 1);
+        _launch(block.timestamp, true, 11 ether, minlockDuration + 1);
 
         vm.stopPrank();
     }
@@ -103,7 +103,7 @@ contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
             "Test Token",
             "TEST",
             1_000_000 ether,
-            block.timestamp + 2 days,
+            block.timestamp,
             minlockDuration,
             true
         );
@@ -130,7 +130,7 @@ contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
         uint256 vapeUsdcPoolLiquidityBeforeLaunch = _vapeUsdcPool.liquidity();
 
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
-            block.timestamp + 2 days,
+            block.timestamp,
             true,
             minimumLiquidityETH,
             minlockDuration + 1
@@ -169,7 +169,7 @@ contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
             "Test Token",
             "TEST",
             1_000_000 ether,
-            block.timestamp + 2 days,
+            block.timestamp,
             minlockDuration - 1,
             false
         );
@@ -181,7 +181,7 @@ contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
         vm.startPrank(_user);
         uint40 lockDuration = minlockDuration + 1;
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
-            block.timestamp + 2 days,
+            block.timestamp,
             false,
             minimumLiquidityETH,
             lockDuration
@@ -210,7 +210,7 @@ contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
         vm.startPrank(_user);
         uint40 lockDuration = minlockDuration + 1;
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
-            block.timestamp + 2 days,
+            block.timestamp,
             false,
             minimumLiquidityETH,
             lockDuration
@@ -247,7 +247,7 @@ contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
     function test_LPTransfer_BeforeUnlock() public {
         vm.startPrank(_user);
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
-            block.timestamp + 2 days,
+            block.timestamp,
             false,
             minimumLiquidityETH,
             minlockDuration + 1
@@ -276,7 +276,7 @@ contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
         vm.startPrank(_user);
         uint40 lockDuration = minlockDuration + 1;
         (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
-            block.timestamp + 2 days,
+            block.timestamp,
             false,
             minimumLiquidityETH,
             minlockDuration + 1
