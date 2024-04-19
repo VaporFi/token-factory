@@ -155,7 +155,7 @@ contract LaunchERC20Facet is ILaunchERC20Facet {
         address dexAggregator,
         address dexAdapter
     ) internal returns (address _token) {
-        if (totalSupply == 0 || _tradingStartsAt < block.timestamp + 2 days) {
+        if (totalSupply == 0 || _tradingStartsAt < block.timestamp) {
             revert LaunchERC20Facet__WrongLaunchArguments();
         }
         _token = address(
@@ -235,8 +235,8 @@ contract LaunchERC20Facet is ILaunchERC20Facet {
             address(s.nonFungiblePositionManager),
             amountInVAPE
         );
-        INonfungiblePositionManager.MintParams memory mintParams = INonfungiblePositionManager
-            .MintParams({
+        INonfungiblePositionManager.MintParams
+            memory mintParams = INonfungiblePositionManager.MintParams({
                 token0: _vape,
                 token1: _usdc,
                 fee: 3000,
@@ -254,7 +254,5 @@ contract LaunchERC20Facet is ILaunchERC20Facet {
         INonfungiblePositionManager(s.nonFungiblePositionManager).mint(
             mintParams
         );
-
-        // Q: What checks should be done with the return values?
     }
 }
