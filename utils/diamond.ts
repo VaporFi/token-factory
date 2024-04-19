@@ -185,10 +185,11 @@ async function doCut(
       to: diamondAddress,
       value: "0",
     };
-    const safeTx = await safe.createTransaction({
-      transactions: [safeTransactionData],
-    });
-    await safe.signTransaction(safeTx);
+    console.log("🚀 ~ safeTransactionData:", safeTransactionData);
+    // const safeTx = await safe.createTransaction({
+    //   transactions: [safeTransactionData],
+    // });
+    // await safe.signTransaction(safeTx);
     return;
   }
 
