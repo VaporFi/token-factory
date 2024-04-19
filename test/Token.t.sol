@@ -13,9 +13,9 @@ contract TokenTest is TokenFactoryTest {
     IDexAggregator public dexAggregator = IDexAggregator(_vaporDexAggregator);
     IERC20 public WNATIVE = IERC20(0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7);
 
-    function _setUp(bool _mintStrat) internal {
+    function _setUp(bool _mintStrat, uint256 _tradingStartsAt) internal {
         (address _pair, address tokenAddress, ) = _launch(
-            block.timestamp + 2 days,
+            _tradingStartsAt,
             false,
             minimumLiquidityETH,
             minlockDuration + 1
@@ -30,7 +30,7 @@ contract TokenTest is TokenFactoryTest {
 
     function test_FindBestPath_IncludesVaporDEXAdapter() public {
         vm.startPrank(_user);
-        _setUp({_mintStrat: false});
+        _setUp({_mintStrat: false, _tradingStartsAt: block.timestamp});
         uint256 amountIn = 1 * 1e16;
         address tokenIn = address(token);
         address tokenOut = address(WNATIVE);
@@ -55,7 +55,7 @@ contract TokenTest is TokenFactoryTest {
 
     function test_SwapNoSplitFromAVAX_StratMember_TradingStarted() public {
         vm.startPrank(_jose);
-        _setUp({_mintStrat: true});
+        _setUp({_mintStrat: true, _tradingStartsAt: block.timestamp});
         uint256 amountIn = 1 * 1e16;
         address tokenIn = address(WNATIVE);
         address tokenOut = address(token);
@@ -71,7 +71,6 @@ contract TokenTest is TokenFactoryTest {
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
         trade.adapters = offer.adapters;
-        vm.warp(block.timestamp + 2 days);
         assertTrue(token.balanceOf(address(_jose)) == 0, "Balance not 0");
         dexAggregator.swapNoSplitFromAVAX{value: amountIn}(
             trade,
@@ -114,7 +113,7 @@ contract TokenTest is TokenFactoryTest {
 
     function test_TradingStarted_LessThan24Hours_NonStratMember() public {
         vm.startPrank(_user);
-        _setUp({_mintStrat: false});
+        _setUp({_mintStrat: false, _tradingStartsAt: block.timestamp});
         uint256 amountIn = 1 * 1e16;
         address tokenIn = address(WNATIVE);
         address tokenOut = address(token);
@@ -130,7 +129,7 @@ contract TokenTest is TokenFactoryTest {
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
         trade.adapters = offer.adapters;
-        vm.warp(block.timestamp + 2 days + 1 hours);
+        vm.warp(block.timestamp + 1 hours);
         assertTrue(token.balanceOf(address(_jose)) == 0, "Balance not 0");
         dexAggregator.swapNoSplitFromAVAX{value: amountIn}(
             trade,
@@ -148,7 +147,7 @@ contract TokenTest is TokenFactoryTest {
         public
     {
         vm.startPrank(_jose);
-        _setUp({_mintStrat: true});
+        _setUp({_mintStrat: true, _tradingStartsAt: block.timestamp + 2 days});
         uint256 amountIn = 1 * 1e16;
         address tokenIn = address(WNATIVE);
         address tokenOut = address(token);
@@ -177,7 +176,7 @@ contract TokenTest is TokenFactoryTest {
         public
     {
         vm.startPrank(_jose);
-        _setUp({_mintStrat: false});
+        _setUp({_mintStrat: false, _tradingStartsAt: block.timestamp});
         uint256 amountIn = 1 * 1e16;
         address tokenIn = address(WNATIVE);
         address tokenOut = address(token);
@@ -193,7 +192,6 @@ contract TokenTest is TokenFactoryTest {
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
         trade.adapters = offer.adapters;
-        vm.warp(block.timestamp + 2 days);
         assertTrue(token.balanceOf(address(_jose)) == 0, "Balance not 0");
         vm.expectRevert("VaporDEX: TRANSFER_FAILED");
         dexAggregator.swapNoSplitFromAVAX{value: amountIn}(
@@ -206,7 +204,7 @@ contract TokenTest is TokenFactoryTest {
 
     function test_Revert_AntiWhale_ExceedsMaximumHolding() public {
         vm.startPrank(_jose);
-        _setUp({_mintStrat: true});
+        _setUp({_mintStrat: true, _tradingStartsAt: block.timestamp});
         uint256 amountIn = 1000 ether;
         address tokenIn = address(WNATIVE);
         address tokenOut = address(token);
@@ -222,7 +220,6 @@ contract TokenTest is TokenFactoryTest {
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
         trade.adapters = offer.adapters;
-        vm.warp(block.timestamp + 2 days);
         assertTrue(token.balanceOf(address(_jose)) == 0, "Balance not 0");
         vm.expectRevert("VaporDEX: TRANSFER_FAILED");
         dexAggregator.swapNoSplitFromAVAX{value: amountIn}(
@@ -237,7 +234,7 @@ contract TokenTest is TokenFactoryTest {
         public
     {
         vm.startPrank(_user);
-        _setUp({_mintStrat: false});
+        _setUp({_mintStrat: false, _tradingStartsAt: block.timestamp});
         uint256 amountIn = 1000 ether;
         address tokenIn = address(WNATIVE);
         address tokenOut = address(token);
@@ -253,7 +250,7 @@ contract TokenTest is TokenFactoryTest {
         trade.amountOut = offer.amounts[offer.amounts.length - 1];
         trade.path = offer.path;
         trade.adapters = offer.adapters;
-        vm.warp(block.timestamp + 2 days + 1 hours);
+        vm.warp(block.timestamp + 1 hours);
         assertTrue(token.balanceOf(address(_jose)) == 0, "Balance not 0");
         vm.expectRevert("VaporDEX: TRANSFER_FAILED");
         dexAggregator.swapNoSplitFromAVAX{value: amountIn}(
@@ -266,7 +263,7 @@ contract TokenTest is TokenFactoryTest {
 
     function test_MultiSwaps_TradingStarted_MoreThan24Hours() public {
         vm.startPrank(_jose);
-        _setUp({_mintStrat: true});
+        _setUp({_mintStrat: true, _tradingStartsAt: block.timestamp + 2 days});
         vm.stopPrank();
 
         // Buying token with AVAX

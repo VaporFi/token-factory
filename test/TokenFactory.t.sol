@@ -47,7 +47,7 @@ contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
     uint256 minimumLiquidity = 10 ** 3; // https://github.com/VaporFi/vapordex-contracts/blob/staging/contracts/VaporDEX/VaporDEXPair.sol#L21
     uint256 minimumLiquidityETH = 10 ether; // to create token
     uint40 minlockDuration = 90; // 3 months
-    uint256 slippage = 200; // 2%
+    uint256 slippage = 250; // 2.5%
 
     function setUp() public {
         vm.createSelectFork("https://api.avax.network/ext/bc/C/rpc");
