@@ -21,7 +21,7 @@ type Config<T> = {
 };
 
 export const config: Config<bigint> = {
-  slippage: { avalancheFuji: BigInt("10000"), avalanche: BigInt("200") },
+  slippage: { avalancheFuji: BigInt("10000"), avalanche: BigInt("300") },
   minimumNative: {
     avalancheFuji: BigInt("1000000000000000"),
     avalanche: BigInt("10000000000000000000"),
