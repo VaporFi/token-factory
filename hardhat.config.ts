@@ -4,6 +4,7 @@ import "@nomicfoundation/hardhat-toolbox";
 
 import "./tasks/admin";
 import "./tasks/verify";
+import "./tasks/erc20token";
 
 const deployerKey = process.env.DEPLOYER_KEY || "";
 const accounts = deployerKey ? [deployerKey] : [];
