@@ -23,7 +23,7 @@ contract Simulate is Test {
 
     function setUp() public {
         vm.createSelectFork("https://api.avax.network/ext/bc/C/rpc");
-        vm.deal(0x6f9A40734c3a7CE5Eef399ce22D6160a4A193Ca5, 1 ether);
+        vm.deal(0x6f9A40734c3a7CE5Eef399ce22D6160a4A193Ca5, 2 ether);
     }
 
     function test_R_LaunchERC20() public {
@@ -31,7 +31,6 @@ contract Simulate is Test {
         uint256 balance = IERC20(token).balanceOf(
             0x6f9A40734c3a7CE5Eef399ce22D6160a4A193Ca5
         );
-        vm.deal(0x6f9A40734c3a7CE5Eef399ce22D6160a4A193Ca5, 2 ether);
         uint256 amountIn = 1.2 ether;
         address tokenIn = WNATIVE;
         address tokenOut = token;
@@ -62,13 +61,13 @@ contract Simulate is Test {
     }
 
     function test_transfer() public {
-        vm.startPrank(0x6f9A40734c3a7CE5Eef399ce22D6160a4A193Ca5);
+        vm.startPrank(0x8265D6aCFa07359E4eA713CECDEbC76beFaCB6BB);
         IERC20(token).transfer(
-            0xB6E87d208c8bF543ca5AeDC452A7eAfe442faE10,
-            IERC20(token).balanceOf(0x6f9A40734c3a7CE5Eef399ce22D6160a4A193Ca5)
+            0x6f9A40734c3a7CE5Eef399ce22D6160a4A193Ca5,
+            (2388550000000000000000 / 2)
         );
         uint256 balance = IERC20(token).balanceOf(
-            0xB6E87d208c8bF543ca5AeDC452A7eAfe442faE10
+            0x6f9A40734c3a7CE5Eef399ce22D6160a4A193Ca5
         );
         console.log(balance / 1e18);
         vm.stopPrank();
