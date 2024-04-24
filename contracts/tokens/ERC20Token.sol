@@ -77,7 +77,7 @@ contract ERC20Token is ERC20, ERC20Permit, Ownable {
         }
 
         if (_secondsSinceTradingStarted < 1 hours) {
-            _enforceAntiWhale(to, value);
+            _enforceAntiWhale(to);
             if (
                 !(_isStratosphereMemberOrAdmin(from) &&
                     _isStratosphereMemberOrAdmin(to))
@@ -85,14 +85,13 @@ contract ERC20Token is ERC20, ERC20Permit, Ownable {
                 revert ERC20Token__NonStratosphereNFTHolder();
             }
         } else if (_secondsSinceTradingStarted < 24 hours) {
-            _enforceAntiWhale(to, value);
+            _enforceAntiWhale(to);
         }
     }
 
-    function _enforceAntiWhale(address to, uint256 value) internal view {
+    function _enforceAntiWhale(address to) internal view {
         if (to != liquidityPool) {
-            uint256 newBalance = balanceOf(to) + value;
-            if (newBalance > maxHoldingAmount) {
+            if (balanceOf(to) > maxHoldingAmount) {
                 revert ERC20Token__ExceedsMaximumHolding();
             }
         }
