@@ -2,13 +2,14 @@
 pragma solidity ^0.8.22;
 
 import {TokenFactoryTest, IERC20} from "./TokenFactory.t.sol";
+import {ERC20Token, ERC20Token__ExceedsMaximumHolding} from "../contracts/tokens/ERC20Token.sol";
 import {IDexAggregator} from "../contracts/interfaces/IDexAggregator.sol";
 import "forge-std/console.sol";
 import {IStratosphere} from "../contracts/interfaces/IStratosphere.sol";
 import {ERC20Token__NonStratosphereNFTHolder, ERC20Token__TradingNotStarted, ERC20Token__ExceedsMaximumHolding} from "../contracts/tokens/ERC20Token.sol";
 
 contract TokenTest is TokenFactoryTest {
-    IERC20 public token;
+    ERC20Token public token;
     IERC20 public pair;
     IDexAggregator public dexAggregator = IDexAggregator(_vaporDexAggregator);
     IERC20 public WNATIVE = IERC20(0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7);
@@ -20,12 +21,89 @@ contract TokenTest is TokenFactoryTest {
             minimumLiquidityETH,
             minlockDuration + 1
         );
-        token = IERC20(tokenAddress);
+        token = ERC20Token(tokenAddress);
         pair = IERC20(_pair);
 
         if (_mintStrat) {
             _mintStratNFT();
         }
+    }
+
+    function test_Transfer() public {
+        vm.startPrank(_jose);
+        _setUp({_mintStrat: true, _tradingStartsAt: block.timestamp});
+        vm.stopPrank();
+
+        vm.startPrank(_hitesh);
+        _mintStratNFT();
+        vm.stopPrank();
+
+        assertTrue(token.balanceOf(_jose) == 0);
+        assertTrue(token.balanceOf(_hitesh) == 0);
+
+        vm.startPrank(address(pair));
+        token.transfer(_jose, token.maxHoldingAmount());
+        token.transfer(_hitesh, token.maxHoldingAmount());
+        assertTrue(token.balanceOf(_jose) == token.maxHoldingAmount());
+        assertTrue(token.balanceOf(_hitesh) == token.maxHoldingAmount());
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 1 days);
+        assertTrue(token.balanceOf(_roy) == 0);
+        vm.startPrank(_jose);
+        token.transfer(_roy, 100 ether);
+        assertTrue(token.balanceOf(_roy) == 100 ether);
+        assertTrue(
+            token.balanceOf(_jose) == token.maxHoldingAmount() - 100 ether
+        );
+        vm.stopPrank();
+
+        vm.startPrank(_roy);
+        token.transfer(_hitesh, 100 ether);
+        assertTrue(
+            token.balanceOf(_hitesh) == token.maxHoldingAmount() + 100 ether
+        );
+        assertTrue(token.balanceOf(_roy) == 0);
+        vm.stopPrank();
+    }
+
+    function test_Revert_Transfer_AntiWhaleLimit() public {
+        vm.startPrank(_jose);
+        _setUp({_mintStrat: true, _tradingStartsAt: block.timestamp});
+        vm.stopPrank();
+
+        vm.startPrank(_hitesh);
+        _mintStratNFT();
+        vm.stopPrank();
+
+        assertTrue(token.balanceOf(_jose) == 0);
+        assertTrue(token.balanceOf(_hitesh) == 0);
+
+        vm.startPrank(address(pair));
+        token.transfer(_jose, token.maxHoldingAmount());
+        token.transfer(_hitesh, token.maxHoldingAmount());
+        assertTrue(token.balanceOf(_jose) == token.maxHoldingAmount());
+        assertTrue(token.balanceOf(_hitesh) == token.maxHoldingAmount());
+
+        vm.expectRevert(ERC20Token__ExceedsMaximumHolding.selector);
+        token.transfer(_jose, 1);
+        vm.stopPrank();
+
+        vm.startPrank(_jose);
+        vm.expectRevert(ERC20Token__ExceedsMaximumHolding.selector);
+        token.transfer(_hitesh, 1);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 1 days);
+        vm.startPrank(_jose);
+        token.transfer(_hitesh, 100 ether);
+        assertTrue(
+            token.balanceOf(_hitesh) == token.maxHoldingAmount() + 100 ether
+        );
+        assertTrue(
+            token.balanceOf(_jose) == token.maxHoldingAmount() - 100 ether
+        );
+        vm.stopPrank();
     }
 
     function test_FindBestPath_IncludesVaporDEXAdapter() public {
