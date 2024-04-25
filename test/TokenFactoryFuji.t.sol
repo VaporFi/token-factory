@@ -7,7 +7,7 @@ import { ERC20Mock } from "./mocks/ERC20Mock.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { LockupLinear } from "@sablier/v2-core/src/types/DataTypes.sol";
 import { IUniswapV3PoolState } from "./interfaces/IUniswapV3PoolState.sol";
-import { TokenFactoryDiamondBaseTest } from "./TokenFactoryDiamondBase.t.sol";
+import { TokenFactoryDiamondBaseTest } from "./utils/TokenFactoryDiamondBase.t.sol";
 import { TokenFactoryDiamond } from "contracts/TokenFactoryDiamond.sol";
 import { DiamondInit } from "contracts/upgradeInitializers/DiamondInit.sol";
 import { AdminFacet } from "contracts/facets/AdminFacet.sol";

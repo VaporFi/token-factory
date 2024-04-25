@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import { TokenFactoryTest, IERC20 } from "./TokenFactory.t.sol";
+import { TokenFactoryAvalancheTest, IERC20 } from "./TokenFactoryAvalanche.t.sol";
 import { ERC20Token, ERC20Token__ExceedsMaximumHolding } from "../contracts/tokens/ERC20Token.sol";
 import { IDexAggregator } from "../contracts/interfaces/IDexAggregator.sol";
 import "forge-std/console.sol";
 import { IStratosphere } from "../contracts/interfaces/IStratosphere.sol";
 import { ERC20Token__NonStratosphereNFTHolder, ERC20Token__TradingNotStarted, ERC20Token__ExceedsMaximumHolding } from "../contracts/tokens/ERC20Token.sol";
 
-contract TokenTest is TokenFactoryTest {
+contract TokenSwapTest is TokenFactoryAvalancheTest {
   ERC20Token public token;
   IERC20 public pair;
   IDexAggregator public dexAggregator = IDexAggregator(_vaporDexAggregator);
@@ -48,7 +48,7 @@ contract TokenTest is TokenFactoryTest {
     assertTrue(token.balanceOf(_hitesh) == token.maxHoldingAmount());
     vm.stopPrank();
 
-    vm.warp(block.timestamp + 1 days);
+    vm.warp(block.timestamp + 121 minutes);
     assertTrue(token.balanceOf(_roy) == 0);
     vm.startPrank(_jose);
     token.transfer(_roy, 100 ether);
@@ -90,7 +90,7 @@ contract TokenTest is TokenFactoryTest {
     token.transfer(_hitesh, 1);
     vm.stopPrank();
 
-    vm.warp(block.timestamp + 1 days);
+    vm.warp(block.timestamp + 3 hours);
     vm.startPrank(_jose);
     token.transfer(_hitesh, 100 ether);
     assertTrue(token.balanceOf(_hitesh) == token.maxHoldingAmount() + 100 ether);
@@ -150,7 +150,7 @@ contract TokenTest is TokenFactoryTest {
     vm.stopPrank();
   }
 
-  function test_TradingStarted_LessThan24Hours_NonStratMember() public {
+  function test_TradingStarted_LessThan2Hours_NonStratMember() public {
     vm.startPrank(_user);
     _setUp({ _mintStrat: false, _tradingStartsAt: block.timestamp });
     uint256 amountIn = 1 * 1e16;
@@ -226,7 +226,7 @@ contract TokenTest is TokenFactoryTest {
     vm.stopPrank();
   }
 
-  function test_Revert_AntiWhale_ExceedsMaximumHolding_TradingStarted_LessThan24Hours_NonStratMember() public {
+  function test_Revert_AntiWhale_ExceedsMaximumHolding_TradingStarted_LessThan2Hours_NonStratMember() public {
     vm.startPrank(_user);
     _setUp({ _mintStrat: false, _tradingStartsAt: block.timestamp });
     uint256 amountIn = 1000 ether;
@@ -246,7 +246,7 @@ contract TokenTest is TokenFactoryTest {
     vm.stopPrank();
   }
 
-  function test_MultiSwaps_TradingStarted_MoreThan24Hours() public {
+  function test_MultiSwaps_TradingStarted_MoreThan2Hours() public {
     vm.startPrank(_jose);
     _setUp({ _mintStrat: true, _tradingStartsAt: block.timestamp + 2 days });
     vm.stopPrank();
@@ -257,7 +257,7 @@ contract TokenTest is TokenFactoryTest {
     address tokenOut = address(token);
     uint256 maxSteps = 1;
 
-    vm.warp(block.timestamp + 3 days + 1 hours);
+    vm.warp(block.timestamp + 2 days + 61 minutes);
 
     vm.startPrank(_user);
     IDexAggregator.FormattedOffer memory offer = dexAggregator.findBestPath(amountIn, tokenIn, tokenOut, maxSteps);

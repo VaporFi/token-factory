@@ -8,14 +8,14 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { LockupLinear } from "@sablier/v2-core/src/types/DataTypes.sol";
 import { IUniswapV3PoolState } from "./interfaces/IUniswapV3PoolState.sol";
 
-import { TokenFactoryDiamondBaseTest } from "./TokenFactoryDiamondBase.t.sol";
+import { TokenFactoryDiamondBaseTest } from "./utils/TokenFactoryDiamondBase.t.sol";
 import { TokenFactoryDiamond } from "contracts/TokenFactoryDiamond.sol";
 import { DiamondInit } from "contracts/upgradeInitializers/DiamondInit.sol";
 import { AdminFacet } from "contracts/facets/AdminFacet.sol";
 import { LaunchERC20Facet } from "contracts/facets/LaunchERC20Facet.sol";
 import { LiquidityLockFacet } from "contracts/facets/LiquidityLockFacet.sol";
 
-contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
+contract TokenFactoryAvalancheTest is TokenFactoryDiamondBaseTest {
   TokenFactoryDiamond tokenFactory;
   AdminFacet internal adminFacet;
   LaunchERC20Facet internal launchFacet;
@@ -44,7 +44,7 @@ contract TokenFactoryTest is TokenFactoryDiamondBaseTest {
   uint256 minimumLiquidity = 10 ** 3; // https://github.com/VaporFi/vapordex-contracts/blob/staging/contracts/VaporDEX/VaporDEXPair.sol#L21
   uint256 minimumLiquidityETH = 10 ether; // to create token
   uint40 minlockDuration = 90; // 3 months
-  uint256 slippage = 250; // 2.5%
+  uint256 slippage = 1000; // 10%
 
   function setUp() public {
     vm.createSelectFork("https://api.avax.network/ext/bc/C/rpc");
