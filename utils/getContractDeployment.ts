@@ -1,6 +1,6 @@
 async function getContractDeployment(
   contractName: string,
-  networkName: string
+  networkName: string,
 ) {
   const Contract = await import("../deployments/" + contractName + ".json");
 

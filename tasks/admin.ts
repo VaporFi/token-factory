@@ -4,11 +4,11 @@ import { ChainName, addresses, config } from "../config";
 
 task(
   "admin:set-stratosphere",
-  "Set Stratosphere as the admin of the TokenFactoryDiamond"
+  "Set Stratosphere as the admin of the TokenFactoryDiamond",
 ).setAction(async (taskArgs, { ethers, network }) => {
   const { address, args } = await getContractDeployment(
     "TokenFactoryDiamond",
-    network.name
+    network.name,
   );
   const adminFacet = await ethers.getContractAt("AdminFacet", address);
   const stratosphereAddress =
@@ -26,7 +26,7 @@ task("admin:set-slippage", "Set the slippage").setAction(
   async (taskArgs, { ethers, network }) => {
     const { address, args } = await getContractDeployment(
       "TokenFactoryDiamond",
-      network.name
+      network.name,
     );
     const adminFacet = await ethers.getContractAt("AdminFacet", address);
 
@@ -40,5 +40,5 @@ task("admin:set-slippage", "Set the slippage").setAction(
       console.log(err);
       return;
     }
-  }
+  },
 );
