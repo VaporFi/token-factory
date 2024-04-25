@@ -15,7 +15,7 @@ async function main() {
       .address;
 
   // Deploy Facets
-  const FacetNames = getFacets(["DiamondCutFacet"]);
+  const FacetNames = getFacets(["DiamondCutFacet", "DiamondLoupeFacet"]);
 
   const Facets = [];
   for (const name of FacetNames) {

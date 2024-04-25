@@ -7,6 +7,7 @@ node_modules
 out
 artifacts
 typechain-types
+deployments
 
 # files
 *.env

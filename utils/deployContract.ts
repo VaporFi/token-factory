@@ -40,6 +40,7 @@ export async function deployContract(
   });
 
   if (deploymentOptions.skipIfAlreadyDeployed) {
+    console.log("Checking if contract is already deployed");
     // Load previous deployment if exists
     const previousDeployment = await loadPreviousDeployment(
       contractName,
@@ -52,6 +53,7 @@ export async function deployContract(
       );
       return previousDeployment;
     }
+    console.log("Contract not deployed yet");
   }
   const Contract = await ethers.getContractFactory(contractName);
 
@@ -125,6 +127,7 @@ async function loadPreviousDeployment(
   const filePath = `${dirPath}/${contractName}.json`;
 
   if (!fs.existsSync(filePath)) {
+    console.log("No previous deployment found");
     return null;
   }
 

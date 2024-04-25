@@ -30,9 +30,6 @@ struct AppStorage {
   uint40 minLockDuration;
   mapping(address => address[]) userToTokens;
   mapping(address => mapping(address => uint256)) liquidityLocks;
-  ///////////////////////////////
-  /// BondingCurveLaunchFacet ///
-  ///////////////////////////////
 }
 
 library LibAppStorage {
