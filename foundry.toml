@@ -9,3 +9,19 @@
   optimizer = true
   optimizer_runs = 1_000_000
   evm_version = 'paris'
+  fuzz = { runs = 1_000 }
+  gas_reports = ["*"]
+
+[profile.ci]
+  fuzz = { runs = 10_000 }
+  verbosity = 4
+
+[fmt]
+  bracket_spacing = true
+  int_types = "long"
+  line_length = 120
+  multiline_func_header = "all"
+  number_underscore = "thousands"
+  quote_style = "double"
+  tab_width = 2
+  wrap_comments = true

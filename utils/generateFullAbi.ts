@@ -20,7 +20,7 @@ async function generateFullAbi(): Promise<AbiItemType[]> {
   }
 
   const uniqueAbis: AbiItemType[] = Array.from(
-    new Set(abis.map((item) => JSON.stringify(item)))
+    new Set(abis.map((item) => JSON.stringify(item))),
   ).map((item) => JSON.parse(item));
   const dir = path.join(__dirname, "../abi");
 
@@ -30,7 +30,7 @@ async function generateFullAbi(): Promise<AbiItemType[]> {
 
   fs.writeFileSync(
     path.join(dir, "diamondAbi.ts"),
-    `export const diamondAbi = ${JSON.stringify(uniqueAbis, null, 2)} as const;`
+    `export const diamondAbi = ${JSON.stringify(uniqueAbis, null, 2)} as const;`,
   );
 
   return uniqueAbis;

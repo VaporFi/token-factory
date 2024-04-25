@@ -40,12 +40,12 @@ task("verify:facets", "Verifies all facets on etherscan").setAction(
         continue;
       }
     }
-  }
+  },
 );
 
 task("verify:all", "Verifies all contracts on etherscan").setAction(
   async (taskArgs, hre) => {
     await hre.run("verify:contract", { contract: "TokenFactoryDiamond" });
     await hre.run("verify:facets");
-  }
+  },
 );

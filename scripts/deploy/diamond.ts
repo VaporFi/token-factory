@@ -31,7 +31,7 @@ export const defaultArgs: DiamondInit.DeployArgsStruct = {
 export const FacetNames = getFacets(["DiamondCutFacet"]);
 
 export async function deployDiamond(
-  args: DiamondInit.DeployArgsStruct = defaultArgs
+  args: DiamondInit.DeployArgsStruct = defaultArgs,
 ) {
   const [deployer] = await ethers.getSigners();
   // Deploy DiamondCutFacet
@@ -73,7 +73,7 @@ export async function deployDiamond(
   // Transfer ownership to multisig
   const ownershipFacet = await ethers.getContractAt(
     "OwnershipFacet",
-    diamondAddress
+    diamondAddress,
   );
   await ownershipFacet.transferOwnership(addresses.teamMultiSig[chain]);
 

@@ -100,7 +100,7 @@ export async function addFacets(
   facets: BaseContract[],
   diamondAddress: string,
   initContract: string = ZeroAddress,
-  initData = "0x"
+  initData = "0x",
 ): Promise<void> {
   const cut = [];
   for (const f of facets) {
@@ -127,7 +127,7 @@ export async function addFacets(
 
 export async function removeFacet(
   selectors: string[],
-  diamondAddress: string
+  diamondAddress: string,
 ): Promise<void> {
   const cut = [
     {
@@ -147,7 +147,7 @@ export async function replaceFacet(
   facet: Contract,
   diamondAddress: string,
   initContract: string = ZeroAddress,
-  initData = "0x"
+  initData = "0x",
 ): Promise<void> {
   const selectors = getSelectors(facet);
 
@@ -170,7 +170,7 @@ async function doCut(
   cut: any[],
   initContract: string,
   initData: string,
-  safe?: Safe
+  safe?: Safe,
 ): Promise<void> {
   const cutter = await ethers.getContractAt("DiamondCutFacet", diamondAddress);
   console.log("Cutting diamond...");

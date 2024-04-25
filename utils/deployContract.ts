@@ -23,7 +23,7 @@ export const defaultDeployOptions: DeployOptions = {
 
 export async function deployContract(
   contractName: string,
-  options: DeployOptions = defaultDeployOptions
+  options: DeployOptions = defaultDeployOptions,
 ) {
   const deploymentOptions = {
     ...defaultDeployOptions,
@@ -43,12 +43,12 @@ export async function deployContract(
     // Load previous deployment if exists
     const previousDeployment = await loadPreviousDeployment(
       contractName,
-      artifact
+      artifact,
     );
 
     if (previousDeployment) {
       console.log(
-        `Contract ${contractName} already deployed at ${await previousDeployment.getAddress()}`
+        `Contract ${contractName} already deployed at ${await previousDeployment.getAddress()}`,
       );
       return previousDeployment;
     }
@@ -61,7 +61,7 @@ export async function deployContract(
     // @ts-expect-error
     if (addresses.create3Factory[networkName] === undefined) {
       throw new Error(
-        `CREATE3Factory address not defined for network ${networkName}`
+        `CREATE3Factory address not defined for network ${networkName}`,
       );
     }
 
@@ -72,7 +72,7 @@ export async function deployContract(
     const CREATE3Factory = await ethers.getContractAt(
       "CREATE3Factory",
       // @ts-expect-error
-      addresses.create3Factory[networkName]
+      addresses.create3Factory[networkName],
     );
     const salt = deploymentOptions.salt;
     const creationCode = ethers.solidityPacked(
@@ -80,13 +80,13 @@ export async function deployContract(
       [
         Contract.bytecode,
         Contract.interface.encodeDeploy(deploymentOptions.args ?? []),
-      ]
+      ],
     );
     await CREATE3Factory.deploy(salt, creationCode);
     const [deployer] = await ethers.getSigners();
     const addressGenerated = await CREATE3Factory.getDeployed.staticCallResult(
       deployer.address,
-      salt
+      salt,
     );
     contractAddress = addressGenerated[0];
     contract = await ethers.getContractAt(contractName, contractAddress);
@@ -94,7 +94,7 @@ export async function deployContract(
     console.log("Deploying", contractName, "with args", deploymentOptions.args);
     contract = await ethers.deployContract(
       contractName,
-      deploymentOptions.args ? deploymentOptions.args : []
+      deploymentOptions.args ? deploymentOptions.args : [],
     );
     console.log("Waiting for deployment");
     await contract.waitForDeployment();
@@ -105,7 +105,7 @@ export async function deployContract(
   saveDeployment(
     contractName,
     { artifact, options: deploymentOptions, address: contractAddress },
-    networkName
+    networkName,
   );
 
   if (deploymentOptions.log) {
@@ -117,7 +117,7 @@ export async function deployContract(
 
 async function loadPreviousDeployment(
   contractName: string,
-  artifact: Artifact
+  artifact: Artifact,
 ) {
   const networkName = network.name;
   const dirName = "deployments";
@@ -129,12 +129,12 @@ async function loadPreviousDeployment(
   }
 
   const previousDeployment = JSON.parse(
-    fs.readFileSync(filePath, { encoding: "utf-8" })
+    fs.readFileSync(filePath, { encoding: "utf-8" }),
   );
 
   if (previousDeployment[networkName] === undefined) {
     console.log(
-      `Contract ${contractName} not deployed on network ${networkName}`
+      `Contract ${contractName} not deployed on network ${networkName}`,
     );
     return null;
   }
@@ -144,11 +144,11 @@ async function loadPreviousDeployment(
     console.log("Contract's bytecode is the same, reusing previous deployment");
     const contract = await ethers.getContractAt(
       contractName,
-      previousDeployment[networkName].address
+      previousDeployment[networkName].address,
     );
 
     console.log(
-      `Contract ${contractName} already deployed at ${await contract.getAddress()}`
+      `Contract ${contractName} already deployed at ${await contract.getAddress()}`,
     );
 
     return contract;

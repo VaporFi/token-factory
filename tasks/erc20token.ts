@@ -8,7 +8,7 @@ task("erc20token:set-lp", "Set LP address")
   .setAction(async ({ tokenAddress, lpAddress }, { ethers, network }) => {
     const { address, args } = await getContractDeployment(
       "ERC20Token",
-      network.name
+      network.name,
     );
     const token = await ethers.getContractAt("ERC20Token", tokenAddress);
 
