@@ -30,7 +30,7 @@
     "solmate": "6.2.0"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@safe-global/protocol-kit": "^3.0.2",
     "@safe-global/safe-core-sdk-types": "^4.0.2",
     "abitype": "^1.0.2",
