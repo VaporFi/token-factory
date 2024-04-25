@@ -7,7 +7,6 @@ import { ERC20Mock } from "./mocks/ERC20Mock.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { LockupLinear } from "@sablier/v2-core/src/types/DataTypes.sol";
 import { IUniswapV3PoolState } from "./interfaces/IUniswapV3PoolState.sol";
-
 import { TokenFactoryDiamondBaseTest } from "./TokenFactoryDiamondBase.t.sol";
 import { TokenFactoryDiamond } from "contracts/TokenFactoryDiamond.sol";
 import { DiamondInit } from "contracts/upgradeInitializers/DiamondInit.sol";
@@ -38,6 +37,7 @@ contract TokenFactoryFujiTest is TokenFactoryDiamondBaseTest {
   address _jose = 0xbbE2B49D637629280543d9550bceB80bF802287e;
   address _hitesh = 0xbbE2B49D637629280543d9550bceB80bF802287e;
   address _roy = 0xbbE2B49D637629280543d9550bceB80bF802287e;
+  address _renegade = 0x9A9f01c11E03042E7763e9305f36FF18f0add81B;
 
   uint256 launchFee = 250 * 1e6;
   // Minimum liquidity required to create a pair on VaporDEXV1 Pool
@@ -78,6 +78,11 @@ contract TokenFactoryFujiTest is TokenFactoryDiamondBaseTest {
     launchFacet = LaunchERC20Facet(address(tokenFactory));
     liquidityLockFacet = LiquidityLockFacet(address(tokenFactory));
 
+    vm.stopPrank();
+
+    // A dummy launch to increase liquidity in the pool for full range
+    vm.startPrank(_user);
+    _launch(block.timestamp + 2 days, false, minimumLiquidityETH, minlockDuration);
     vm.stopPrank();
   }
 
@@ -123,30 +128,28 @@ contract TokenFactoryFujiTest is TokenFactoryDiamondBaseTest {
     vm.stopPrank();
   }
 
-  // function test_LaunchWithLPBurn() public {
-  //   vm.startPrank(_user);
-  //   uint256 vapeUsdcPoolLiquidityBeforeLaunch = _vapeUsdcPool.liquidity();
+  function test_LaunchWithLPBurn() public {
+    vm.startPrank(_user);
+    uint256 vapeUsdcPoolLiquidityBeforeLaunch = _vapeUsdcPool.liquidity();
+    (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
+      block.timestamp + 2 days,
+      true,
+      minimumLiquidityETH,
+      minlockDuration + 1
+    );
 
-  //   (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
-  //     block.timestamp + 2 days,
-  //     true,
-  //     minimumLiquidityETH,
-  //     minlockDuration + 1
-  //   );
+    uint256 vapeUsdcPoolLiquidityAfterLaunch = _vapeUsdcPool.liquidity();
+    // Pair and Token Checks
+    assertTrue(_pair != address(0), "Pair address is zero");
+    assertTrue(_tokenAddress != address(0), "Token address is zero");
+    assertTrue(IERC20(_pair).balanceOf(address(0)) > minimumLiquidity, "Pair balance is zero");
+    assertTrue(vapeUsdcPoolLiquidityAfterLaunch > vapeUsdcPoolLiquidityBeforeLaunch, "Liquidity not added to pool");
 
-  //   uint256 vapeUsdcPoolLiquidityAfterLaunch = _vapeUsdcPool.liquidity();
+    // Stream Checks
+    assertTrue(_streamId == 0);
 
-  //   // Pair and Token Checks
-  //   assertTrue(_pair != address(0), 'Pair address is zero');
-  //   assertTrue(_tokenAddress != address(0), 'Token address is zero');
-  //   assertTrue(IERC20(_pair).balanceOf(address(0)) > minimumLiquidity, 'Pair balance is zero');
-  //   assertTrue(vapeUsdcPoolLiquidityAfterLaunch > vapeUsdcPoolLiquidityBeforeLaunch, 'Liquidity not added to pool');
-
-  //   // Stream Checks
-  //   assertTrue(_streamId == 0);
-
-  //   vm.stopPrank();
-  // }
+    vm.stopPrank();
+  }
 
   // no sablier in fuji, commented them
   function test_Revert_LaunchWithLPLock() public {
@@ -263,37 +266,37 @@ contract TokenFactoryFujiTest is TokenFactoryDiamondBaseTest {
     vm.stopPrank();
   }
 
-  // function test_LPTransfer_AfterUnlock() public {
-  //     vm.startPrank(_user);
-  //     uint40 lockDuration = minlockDuration + 1;
-  //     (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
-  //         block.timestamp + 2 days,
-  //         false,
-  //         minimumLiquidityETH,
-  //         minlockDuration + 1
-  //     );
+  function test_LPTransfer_AfterUnlock() public {
+    vm.startPrank(_user);
+    uint40 lockDuration = minlockDuration + 1;
+    (address _pair, address _tokenAddress, uint256 _streamId) = _launch(
+      block.timestamp + 2 days,
+      false,
+      minimumLiquidityETH,
+      minlockDuration + 1
+    );
 
-  //     vm.warp(block.timestamp + lockDuration * 1 days);
+    vm.warp(block.timestamp + lockDuration * 1 days);
 
-  //     sablier.approve(address(tokenFactory), _streamId);
-  //     liquidityLockFacet.transferLock(_tokenAddress, _jose);
-  //     address ownerOfStream = sablier.ownerOf(_streamId);
-  //     assertTrue(ownerOfStream == _jose);
-  //     vm.stopPrank();
+    sablier.approve(address(tokenFactory), _streamId);
+    liquidityLockFacet.transferLock(_tokenAddress, _renegade);
+    address ownerOfStream = sablier.ownerOf(_streamId);
+    assertTrue(ownerOfStream == _renegade);
+    vm.stopPrank();
 
-  //     vm.startPrank(_jose);
-  //     uint256 withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
-  //     liquidityLockFacet.unlockLiquidityTokens(_tokenAddress, _jose);
-  //     assertTrue(IERC20(_pair).balanceOf(_jose) == withdrawableAmount);
+    vm.startPrank(_renegade);
+    uint256 withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
+    liquidityLockFacet.unlockLiquidityTokens(_tokenAddress, _renegade);
+    assertTrue(IERC20(_pair).balanceOf(_renegade) == withdrawableAmount);
 
-  //     LockupLinear.Stream memory stream = sablier.getStream(_streamId);
-  //     assertEq(stream.isDepleted, true);
-  //     assertTrue(stream.amounts.withdrawn == withdrawableAmount);
-  //     withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
-  //     assertTrue(withdrawableAmount == 0);
+    LockupLinear.Stream memory stream = sablier.getStream(_streamId);
+    assertEq(stream.isDepleted, true);
+    assertTrue(stream.amounts.withdrawn == withdrawableAmount);
+    withdrawableAmount = sablier.withdrawableAmountOf(_streamId);
+    assertTrue(withdrawableAmount == 0);
 
-  //     vm.stopPrank();
-  // }
+    vm.stopPrank();
+  }
 
   function test_ChangeLaunchFee_Withdraw_Owner() public {
     vm.startPrank(_diamondOwner);
