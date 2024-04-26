@@ -18,6 +18,7 @@ contract ERC20Token is ERC20, ERC20Permit, Ownable {
   address public immutable dexAdapter;
   uint256 public immutable maxHoldingAmount;
   uint256 public immutable tradingStartsAt;
+  address public immutable deployer;
   IStratosphere public immutable stratosphere;
   bool public immutable isStratosphereEnabled;
 
@@ -30,6 +31,7 @@ contract ERC20Token is ERC20, ERC20Permit, Ownable {
     uint256 _tradingStartsAt,
     address _dexAggregator,
     address _dexAdapter,
+    address _deployer,
     bool _isStratosphereEnabled
   ) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(_owner) {
     stratosphere = IStratosphere(_stratosphereAddress);
@@ -39,6 +41,7 @@ contract ERC20Token is ERC20, ERC20Permit, Ownable {
     dexAggregator = _dexAggregator;
     dexAdapter = _dexAdapter;
     isStratosphereEnabled = _isStratosphereEnabled;
+    deployer = _deployer;
   }
 
   function setLiquidityPool(address _liquidityPool) external onlyOwner {

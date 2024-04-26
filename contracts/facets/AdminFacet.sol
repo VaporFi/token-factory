@@ -110,17 +110,25 @@ contract AdminFacet is Modifiers {
   /**
    * @dev Retrieves the details of a token.
    * @param _token The address of the token.
+   * @return deployer The address of the token's deployer.
    * @return tokenAddress The address of the token.
    * @return liquidityPool The address of the token's liquidity pool.
    * @return tradingStartsAt The timestamp when trading starts for the token.
+   * @return streamId The stream ID associated with the token's liquidity lock. Returns 0 if burned.
    */
   function getTokenDetails(
     address _token
-  ) public view returns (address tokenAddress, address liquidityPool, uint256 tradingStartsAt) {
+  )
+    public
+    view
+    returns (address deployer, address tokenAddress, address liquidityPool, uint256 tradingStartsAt, uint256 streamId)
+  {
     IERC20Token token = IERC20Token(_token);
+    deployer = token.deployer();
     tokenAddress = address(token);
     liquidityPool = token.liquidityPool();
     tradingStartsAt = token.tradingStartsAt();
+    streamId = s.liquidityLocks[deployer][tokenAddress];
   }
 
   function getLaunchFee() external view returns (uint256) {
